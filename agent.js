@@ -42,48 +42,26 @@ class Agent {
     // collision
     // for all obstacles in the scene
     let obs = scene.obstacles;
+
+	let vhat = this.vel.clone().normalize();
+	const REACH = Math.max(this.vel.length() * 0.2,20);
+	const K = Math.max(this.vel.length() * 0.5,100);
+	for (let i = 0; i < obs.length; i++) {
+		let point = scene.obstacles[i].center.clone().sub (this.pos); // c-p
+		let proj  = point.dot(vhat);
+		if (proj > 0 && proj < REACH) {
+		  let perp = new THREE.Vector3();
+		  perp.subVectors (point, vhat.clone().setLength(proj));
+		  let overlap = scene.obstacles[i].size + this.halfSize - perp.length();
+		  if (overlap > 0) {
+			  perp.setLength (K*overlap);
+			  perp.negate();
+			  this.force.add (perp);
+			  console.log ("hit:", perp);
+		  }
+		}
+	}
 	
-      let projMin = Infinity, danger = 0;
-      for(let i = 0; i < scene.obstacles.length; i++){
-          let vhat = this.vel.clone().normalize();
-          let point = scene.obstacles[i].center.clone().sub(this.pos);// c-p
-          let proj = point.dot(vhat);
-          const REACH = Math.max(this.vel.length() * 0.2,20);
-
-          if (proj > 0 && proj < REACH) {
-              let perp = new THREE.Vector3();
-              perp.subVectors(point, vhat.clone().setLength(proj));
-              let overlap = scene.obstacles[i].size + this.halfSize - perp.length();
-              console.log(i + ' :' + overlap);
-              if (overlap > 0) {
-                  if(projMin > proj) {
-                      console.log('get');
-                      projMin = proj;
-                      danger = i;
-                  }
-              }
-          }
-      }
-
-      let vhat = this.vel.clone().normalize();
-      let point = scene.obstacles[danger].center.clone().sub (this.pos); // c-p
-      let proj  = point.dot(vhat);
-      const REACH = Math.max(this.vel.length() * 0.2,20);
-      const K = Math.max(this.vel.length() * 0.5,100);
-
-      if (proj > 0 && proj < REACH) {
-          let perp = new THREE.Vector3();
-          perp.subVectors (point, vhat.clone().setLength(proj));
-          let overlap = scene.obstacles[danger].size + this.halfSize - perp.length();
-          if (overlap > 0) {
-              perp.setLength (K*overlap);
-              perp.negate();
-              this.force.add (perp);
-              console.log ("hit:", perp);
-          }
-      }
-
-
 	// Euler's method       
     this.vel.add(this.force.clone().multiplyScalar(dt));
 
