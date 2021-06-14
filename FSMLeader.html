@@ -47,8 +47,8 @@ function initFSM () {
     transitions: [
       { name: 'near',from: 'stand',  to: 'attack' },
 	  { name: 'near',from: 'attack',  to: 'attack' },
-      { name: 'BeAttacked', from: 'attack', to: 'hide'},
-	  { name: 'BeAttacked', from: 'hide', to: 'hide'}
+      { name: 'BeAttacked', from: 'attack', to: 'stand'},
+	  { name: 'BeAttacked', from: 'stand', to: 'stand'}
     ]
   });
 }
@@ -176,22 +176,21 @@ function animate() {
 	dis = soldier.position.clone().sub(leader.position).length();
 	
 	let state = fsm.state;
-	if(dis < 25){
+	if(dis < 30){
 		fsm.near();
 		shooting();
 		console.log (state);
 	}
-	if(fire == true && dis > 25){
+	if(dis > 30 && fire == true ){
 		//fsm.BeAttacked();
-		leader.position.x -= 0.8;
+		leader.position.x += 0.8;
 		console.log (state);
 		fire = !fire;
 	}
-	else if(dis > 10){
-		leader.position.z += 0.05;
-		leader.position.x += 0.3;
-		fire = !fire;
+	else if(dis > 50){
+		leader.position.x -= 0.8;
 	}
+
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
   
