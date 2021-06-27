@@ -47,8 +47,8 @@ function initFSM () {
     transitions: [
       { name: 'near',from: 'stand',  to: 'attack' },
 	  { name: 'near',from: 'attack',  to: 'attack' },
-      { name: 'BeAttacked', from: 'attack', to: 'stand'},
-	  { name: 'BeAttacked', from: 'stand', to: 'stand'}
+      { name: 'beAttacked', from: 'attack', to: 'stand'},
+	  { name: 'beAttacked', from: 'stand', to: 'stand'}
     ]
   });
 }
@@ -182,7 +182,7 @@ function animate() {
 		console.log (state);
 	}
 	if(dis > 30 && fire == true ){
-		//fsm.BeAttacked();
+		fsm.beAttacked();
 		leader.position.x += 0.8;
 		console.log (state);
 		fire = !fire;
