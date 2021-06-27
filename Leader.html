@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#heading{
+	text-align: center;
+	position:absolute;
+	width:100vw;
+}
+</style>
+</head>
+<body style='overflow:hidden'> 
+
+<div id='heading'>
+	<h3 style = "color:red">FSM Leader<br></h3>
+	  <p id='theta'> </p>
+</div>
+
+<script src="state-machine.js"></script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script type ="module">
+javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+
+import * as THREE from "https://threejs.org/build/three.module.js";
+import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+
+class PIDControllerR2 {
+	constructor(x = 0, y = 0, xref = 0, yref = 0) {
+		this.x = x;
+		this.y = y;
+		this.xref = xref;
+		this.yref = yref;
+		this.vx = 0;
+		this.vy = 0;
+		this.KP = 30; // 'spring constant'
+		this.KD = 10; // 'damping'
+		this.KI = 20;
+		this.integralX = 0;
+		this.integralY = 0;
+	}
+
+	update(dt) {
+		let errorX = this.xref - this.x;
+		let errorY = this.yref - this.y;
+			this.integralX += errorX*dt;
+			this.integralY += errorY*dt;
+		let fx = this.KP * errorX + this.KI*this.integralX - this.KD * this.vx;
+		let fy = this.KP * errorY + this.KI*this.integralY - this.KD * this.vy;
+		// plant: Euler's method (Newtonian dynamics)
+		this.vx += fx * dt;
+		this.x += this.vx * dt
+		this.vy += fy * dt;
+		this.y += this.vy * dt
+		return [this.x, this.y];
+	}
+	setRef(xref, yref) {
+		this.xref = xref;
+		this.yref = yref;
+	}
+}
+
+
+var camera, scene, renderer;
+var mousePoint,pointer;
+var pidControl,R2marker;
+
+var fsm,target;
+
+init();
+initFSM();
+animate();
+
+function initFSM () {
+  fsm = new StateMachine({
+    init: 'idle',
+    transitions: [
+      { name: 'find',from: 'idle',  to: 'attack' },
+	  { name: 'find',from: 'attack',  to: 'attack' },
+      { name: 'notfind', from: 'attack', to: 'idle'},
+	  { name: 'notfind', from: 'idle', to: 'idle'}
+    ]
+  });
+}
+
+
+function init() {
+	renderer = new THREE.WebGLRenderer({
+		antialias: true
+	});
+
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor(0x888888);
+	document.body.appendChild(renderer.domElement);
+
+	scene = new THREE.Scene();
+	camera = new THREE.OrthographicCamera(-50, 50, 50, -50, -10, 100);
+	camera.position.z = 10;
+
+	let grid = new THREE.GridHelper(100, 10, 'red', 'white')
+	scene.add(grid)
+	grid.rotation.x = Math.PI / 2;
+
+	mousePoint = new THREE.Mesh(new THREE.CircleGeometry(1), new THREE.MeshBasicMaterial({
+		color: 'yellow'
+	}));
+	scene.add(mousePoint)
+
+	window.addEventListener('resize', onWindowResize, false);
+	window.addEventListener('pointermove', onDocumentMouseDown, false);
+
+	//////////////
+	pidControl = new PIDControllerR2();
+	pointer = new THREE.Object3D();
+	let box = new THREE.Mesh(new THREE.PlaneGeometry(6, 2), new THREE.MeshBasicMaterial())
+	let circle = new THREE.Mesh(new THREE.CircleGeometry(2, 20), new THREE.MeshBasicMaterial())
+	pointer.add(box, circle);
+
+	box.position.x = 3
+	scene.add(pointer);
+  
+}
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function setTarget(rawAngle) {
+	// convert angle to (x,y) on unit circle
+	return [Math.cos(rawAngle), Math.sin(rawAngle)]
+}
+
+function onDocumentMouseDown(event) {
+	event.preventDefault();
+	// NDC: [-1,1]x[-1,1]
+	let mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+	let mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+	mousePoint.position.set(mouseX * 50, mouseY * 50, 0);
+	//target = setTarget(myAtan2(mouseY, mouseX));
+	target = setTarget(Math.atan2(mouseY, mouseX)); // this is fine
+
+	pidControl.setRef(target[0], target[1]);
+}
+
+function animate() {
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
+	let dt = 0.01;
+	let pos = pidControl.update (dt);
+	let theta = Math.atan2(pos[1],pos[0]);
+
+	$("#theta").text('theta:' + theta.toFixed(2))
+	pointer.rotation.z = theta;
+	
+	//let dis = target.position.clone().sub(pointer.position).length();
+	let state = fsm.state;
+	
+	if(target == theta){
+		fsm.find();
+		pointer.position.x += 0.1;
+		console.log (state);
+	}
+	else{
+		fsm.notfind();
+		console.log (state);
+	}
+}
+
+</script>
+</body>
+</html>
