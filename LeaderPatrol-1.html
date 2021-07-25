@@ -168,26 +168,33 @@ class Agent extends Avatar {
 				super.setHideTarget (target.position.x,target.position.y,target.position.z);
 			if (this.fsm.state === 'patrol'){
 				let dt = clock.getElapsedTime();
-				//let angle = Math.PI / 4;
 			
 				
 				if(dt > 5){
-					if (count === 0) {
-						let Left = preditor.mesh.localToWorld(new THREE.Vector3(-10,0,-100));
-						super.setPatrolTarget(Left.x, 0, Left.z);
-						$('#Check').text ('Check Left side');
+					///debugger;
+					if(preditor.pos.x > 0 && preditor.pos.z < 0){ //第一象限
+						super.setPatrolTarget(120 * Math.random(), 0, -120 + 120 * Math.random());
+						$('#Check').text ('Check First quadrant');
 					}
-					if (count === 1) {
-						let Right = preditor.mesh.localToWorld(new THREE.Vector3(-10,0,100));
-						super.setPatrolTarget(Right.x, 0, Right.z);
-						$('#Check').text ('Check Right side');
+					else if(preditor.pos.x < 0 && preditor.pos.z < 0){ //第二象限
+						super.setPatrolTarget(-120+120 * Math.random(), 0, -120 + 120 * Math.random());
+						$('#Check').text ('Check Second quadrant');
+					}
+					else if(preditor.pos.x < 0 && preditor.pos.z > 0){ //第三象限
+						super.setPatrolTarget(-120+120 * Math.random(), 0, 120 * Math.random());
+						$('#Check').text ('Check Third quadrant');
+					}
+					else if(preditor.pos.x > 0 && preditor.pos.z > 0){ //第三象限
+						super.setPatrolTarget(120 * Math.random(), 0, 120 * Math.random());
+						$('#Check').text ('Check Fourth quadrant');
 					}
 				}
 				else {
 					let dis = prey.mesh.localToWorld(new THREE.Vector3(-10,0,10));
 					super.setPatrolTarget(dis.x,0,dis.z);
+					$('#Check').text ('Follow Capturer');
 				}
-				console.log(dt,count);
+				console.log(dt);
 				
 				this.mesh.children[0].material.visible = true;
 				this.mesh.children[1].material.visible = false;
@@ -234,7 +241,6 @@ var pickables = [];
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var preditorRaycaster;
-var count = 0;
 
 var theta = 0,HH = 12,T = 1;
 
@@ -426,8 +432,7 @@ function checkRaycaster(){
 
 setInterval(function () {
 	clock.elapsedTime = 0;
-	count = Math.floor(Math.random() * 2);
-}, 6250);
+}, 10000);
 
 function animate() {
 	
