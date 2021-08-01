@@ -217,6 +217,7 @@ class Agent extends Avatar {
 			if (this.fsm.state === 'attack'){
 			
 				super.setBrake(10);
+				clock.elapsedTime = 0;
 				
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
@@ -471,7 +472,7 @@ function checkRaycaster(){
 
 setInterval(function () {
 	clock.elapsedTime = 0;
-}, 8800);
+}, 8500);
 
 function animate() {
 	
