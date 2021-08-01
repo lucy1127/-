@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#heading{
+	text-align: center;
+	position:absolute;
+	width:100vw;
+}
+#footer{
+	width:100vw;
+    height:100px;  
+	text-align: center;	
+    position:absolute;
+    bottom:0px;
+	background: #999;
+}
+</style>
+</head>
+<body style='overflow:hidden'> 
+
+<div id='heading'>
+	<h3 style = "color:red">LeaderPatrol<br></h3>
+</div>
+<div id = 'footer'>
+	<h3 style = "color:yellow"><p id='inView'></p></h3>
+	<h3 style = "color:blue"><p id='Check'></p></h3>
+</div>
+
+<script src="state-machine.js"></script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+
+<script type ="module">
+javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+
+import * as THREE from "https://threejs.org/build/three.module.js";
+import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+
+( function( ) {
+      Math.clamp = function(val,min,max) {
+          return Math.min(Math.max(val,min),max);
+      } 
+} )();
+
+class Avatar {
+  constructor(pos, mesh) {
+    this.pos = pos.clone();
+    this.vel = new THREE.Vector3();
+    this.force = new THREE.Vector3();
+    this.MAXSPEED = 80;
+    this.ARRIVAL_R = 30;
+    
+    this.size = 35;    
+    this.angle = 0; // for orientable agent
+    this.mesh = mesh;
+    scene.add (mesh);
+
+    this.target = null;
+    this.steermode = '';
+    this.BRAKING = 0; // no brake
+  }
+  
+  update(dt) {
+    //console.log ('in avatar update ...');
+    
+    this.accumulateForce();
+    this.vel.add(this.force.clone().multiplyScalar(dt));
+
+	// ARRIVAL: velocity modulation
+    if (this.target !== null) {   
+      let diff = this.target.clone().sub(this.pos)
+      let dst = diff.length();
+      if (dst < this.ARRIVAL_R) {
+        this.vel.setLength(dst)
+      }
+    }
+	
+	//Obstacle
+	let obs = scene.obstacles;
+    // pick the most threatening one
+    let theOne = null;
+    let dist = 1e10;
+    let vhat = this.vel.clone().normalize();
+    const REACH = 50
+    const K = 5
+    let perp;
+    for (let i = 0; i < obs.length; i++) {
+      let point = obs[i].center.clone().sub (this.pos) // c-p
+      let proj  = point.dot(vhat);
+      if (proj > 0 && proj < REACH) {
+        perp = new THREE.Vector3();
+        perp.subVectors (point, vhat.clone().setLength(proj));
+        let overlap = obs[i].size + this.size - perp.length()
+        if (overlap > 0 && proj < dist) {
+            theOne = obs[i]
+            dist = proj
+            perp.setLength (K*overlap);
+            perp.negate()
+        }
+      }
+    }
+	if (theOne)
+       this.force.add (perp);
+    
+    this.vel.add(this.force.clone().multiplyScalar(dt));
+    
+   	// MAXSPEED modulation
+	let speed = this.vel.length()
+	this.vel.setLength(Math.clamp (speed, 0, this.MAXSPEED))
+	this.pos.add(this.vel.clone().multiplyScalar(dt))
+    this.mesh.position.copy(this.pos)
+    
+    // for orientable agent
+    if (this.vel.length() > 1.0) {
+	    this.angle = Math.atan2 (-this.vel.z, this.vel.x)
+    	this.mesh.rotation.y = this.angle
+   	}
+  }
+  
+  setSeekTarget (x,y,z) {
+    this.BRAKING = 0; // release Brake while seek
+	this.steerMode = 'SEEK';
+  	this._setTarget (x,y,z);	
+  }
+  
+  // target, Patrol & Hide  
+  setPatrolTarget (x,y,z) {
+	this.BRAKING = 0;
+    this.steerMode = 'patrol';
+  	this._setTarget (x,y,z);	
+  }
+  
+  setAttackTarget (x,y,z) {
+	this.BRAKING = 0;
+	this.steerMode = 'attack';
+  	//this._setTarget (x,y,z);	
+  }
+  
+  setHideTarget (x,y,z) {
+	this.BRAKING = 0;
+	this.steerMode = 'hide';
+  	this._setTarget (x,y,z);	
+  }
+ 
+  _setTarget(x,y,z) {  // do not use directly
+  	if (this.target !== null)
+    	this.target.set(x,y,z);
+    else {
+    	this.target = new THREE.Vector3(x,y,z);
+    }
+  }
+  
+  targetInducedForce (targetPos) { 
+	 let sign = 0;
+	 if (this.steerMode === 'patrol' || this.steerMode === 'SEEK')
+		sign = 1;
+	 else if (this.steerMode === 'hide')
+		sign = -1;
+	
+	 return targetPos.clone().sub(this.pos).normalize().multiplyScalar(sign*this.MAXSPEED).sub(this.vel);
+  }
+  
+  setBrake (brake) {  // make the avatar stop gracefully
+  	this.BRAKING = brake;  	
+  	this.target = null;  // release target
+  }
+  
+  accumulateForce() {
+    if (this.target) 
+    	this.force.copy(this.targetInducedForce (this.target));
+    else
+    	this.force.set (0,0,0);  // for null-target initial force
+    	
+	// braking ...
+    this.force.add (this.vel.clone().multiplyScalar(-this.BRAKING));
+   }
+
+}
+class Agent extends Avatar {
+   constructor (pos, mesh, name = '', fsm) {
+      super (pos, mesh);
+	  this.fsm = fsm;
+	  this.stateSign = null;
+   }
+   update (dt) {
+   	
+		super.update (dt);  // calling avatar update
+
+		// agent related ...  
+		// how to make the brain not so hyper-active
+		if (this.fsm) {
+			$('#preditorState').text (this.fsm.state);
+					
+			if (this.fsm.state === 'hide')
+				super.setHideTarget (target.position.x,target.position.y,target.position.z);
+			if (this.fsm.state === 'patrol'){
+				let dt = clock.getElapsedTime();
+			
+				
+				if(dt > 8){
+					let back = preditor.mesh.localToWorld(new THREE.Vector3(-10,0,10))
+					super.setPatrolTarget(back.x,0,back.z);
+					$('#Check').text ('Check Behind');
+				}
+				else {
+					let dis = prey.mesh.localToWorld(new THREE.Vector3(-5,0,5));
+					super.setPatrolTarget(dis.x,0,dis.z);
+					$('#Check').text ('Follow Capturer');
+				}
+				console.log(dt);
+				
+				this.mesh.children[0].material.visible = true;
+				this.mesh.children[1].material.visible = false;
+			}
+			if (this.fsm.state === 'attack'){
+			
+				super.setBrake(10);
+				
+				this.mesh.children[0].material.visible = false;
+				this.mesh.children[1].material.visible = true;
+			}
+				
+		}
+		if (this.stateSign) {
+			this.stateSign.position.copy (this.pos);
+			this.stateSign.position.y = 10;
+			this.stateSign.lookAt (camera.position.x, 50, camera.position.z);
+			
+			if (this.fsm.state === 'patrol') {
+				this.stateSign.children[0].material.visible = true;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+			}
+			if (this.fsm.state === 'hide') {
+				this.stateSign.children[1].material.visible = true;
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+			}
+			if(this.fsm.state === 'attack'){
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = true;
+			}
+		}
+	
+   }
+}
+
+class Obstacle {
+	constructor (center,size) {
+		this.center = center.clone();  
+		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,1,20),
+			new THREE.MeshBasicMaterial());
+		this.mesh.position.copy (center);
+		this.size = size;
+		scene.add (this.mesh)
+	}
+}
+
+
+var camera,scene,renderer,clock;
+var preditor,prey,target;
+var pickables = [];
+
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var preditorRaycaster;
+
+var theta = 0,HH = 12;
+var hide = false;
+
+init();
+animate();
+
+function initFSM () {
+  let fsm = new StateMachine({
+    init: 'patrol',
+    transitions: [
+      { name: 'beattacked',from: 'patrol',  to: 'hide'},
+	  { name: 'beattacked',from: 'hide',  to: 'hide'},
+	  { name: 'depart',from: 'hide',  to: 'patrol'},
+	  { name: 'depart',from: 'attack',  to: 'hide'},
+	  { name: 'depart',from: 'patrol',  to: 'patrol'},
+	  { name: 'shoot',from: 'patrol',  to: 'attack'},
+	  { name: 'shoot',from: 'attack',  to: 'attack'}
+    ]
+  });
+  
+   return fsm; 
+}
+
+function init() {
+	
+	clock = new THREE.Clock();
+	scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.z = 120;
+	camera.position.y = 100;
+	
+	renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x888888);
+    let controls = new OrbitControls(camera, renderer.domElement);
+    document.body.appendChild(renderer.domElement);
+	window.addEventListener('resize', onWindowResize, false);
+    var gridXZ = new THREE.GridHelper(240, 24, 'red', 'white');
+    scene.add(gridXZ);
+	
+	document.addEventListener("pointerdown",onDocumentMouseDown,false);
+	//////////////////////////////////////////////////////////////////////////////////////////
+	let plane = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshBasicMaterial({
+		transparent: true,
+		opacity: 0.5,
+		visible: true
+	}));
+	scene.add(plane);
+	plane.material.visible = false
+	plane.rotation.x = -Math.PI / 2;
+	pickables = [plane];
+
+	preditor = new Agent (new THREE.Vector3(-10,0,10), preditorMesh(), 'T-Rex', initFSM());
+	preditor.stateSign = stateSign();
+	scene.add (preditor.stateSign);
+	
+	prey = new Agent(new THREE.Vector3(),preyMesh(),"sheep");
+	
+	target = targetMesh();
+	target.position.set(50,0,0);
+	scene.add(target);
+	target.name = 'soldier';
+	
+	//add obstacles to the scene
+	scene.obstacles = [];
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(40,0,-70), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(-20,0,0), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(65,0,0), 15) )
+	scene.obstacles[0].mesh.name = 'obstacles';
+	scene.obstacles[1].mesh.name = 'obstacles';
+	scene.obstacles[2].mesh.name = 'obstacles';
+	
+	preditorRaycaster = new THREE.Raycaster();
+	pickables.push (target,scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh);
+	
+}
+function targetMesh(){
+
+	var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin ('');
+
+	// 有方向性的圖案
+	let soilderTex = loader.load ('https://i.imgur.com/CzcAI0k.jpeg');
+	let woodTex = loader.load ('https://i.imgur.com/DrvlmNW.jpg?1');
+	
+	var soldier = new THREE.Group();
+	let capTop = new THREE.Mesh (new THREE.CircleGeometry(6,20), new THREE.MeshBasicMaterial({map: soilderTex}));
+	capTop.rotation.x = -Math.PI/2;
+	capTop.position.y = 2.5;
+
+	let captainRing = new THREE.Mesh (new THREE.CylinderGeometry(6,6,5,20, 2, true), new THREE.MeshBasicMaterial({map: woodTex, side:THREE.DoubleSide}));
+	soldier.add (captainRing, capTop);
+	
+	return soldier;
+}
+function preditorMesh () {
+
+	var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin ('');
+
+	// 有方向性的圖案
+	let capTex = loader.load ('https://i.imgur.com/T007SwM.png');
+	let woodTex = loader.load ('https://i.imgur.com/DrvlmNW.jpg?1');
+	let redTex = loader.load ('https://i.imgur.com/93FViDI.png');
+
+	var captain = new THREE.Group();
+	let capTop = new THREE.Mesh (new THREE.CircleGeometry(6,20), new THREE.MeshBasicMaterial({map: capTex}));
+	capTop.rotation.x = -Math.PI/2;
+	capTop.rotation.z = -Math.PI/2;  // 初始：head toward +X (world)
+	capTop.position.y = 2.5;
+
+	let captainRing = new THREE.Mesh (new THREE.CylinderGeometry(6,6,5,20, 2, true), new THREE.MeshBasicMaterial({map: woodTex, side:THREE.DoubleSide}));
+	let captainWarnRing = new THREE.Mesh (new THREE.CylinderGeometry(6,6,5,20, 2, true), new THREE.MeshBasicMaterial({map: redTex, side:THREE.DoubleSide}));
+	captain.add (captainRing,captainWarnRing, capTop);
+	
+	return captain;
+}
+function preyMesh () {
+
+	var loader = new THREE.TextureLoader();
+	loader.setCrossOrigin ('');
+
+	// 有方向性的圖案
+	let capTex = loader.load ('https://i.imgur.com/rNkV2Mf.png');
+	let woodTex = loader.load ('https://i.imgur.com/DrvlmNW.jpg?1');
+
+	var capturer = new THREE.Group();
+	let capTop = new THREE.Mesh (new THREE.CircleGeometry(5,10), new THREE.MeshBasicMaterial({map: capTex}));
+	capTop.rotation.x = -Math.PI/2;
+	capTop.rotation.z = -Math.PI/2;  // 初始：head toward +X (world)
+	capTop.position.y = 2.5;
+
+	let captainRing = new THREE.Mesh (new THREE.CylinderGeometry(5,5,5,10, 2, true), new THREE.MeshBasicMaterial({map: woodTex, side:THREE.DoubleSide}));
+	capturer.add (captainRing, capTop);
+	
+	return capturer;
+}
+function stateSign () {
+	let loader = new THREE.TextureLoader();
+	let patrolMap = loader.load ("https://i.imgur.com/UrpQ83j.png");
+	let hideMap = loader.load ("https://i.imgur.com/KKADVCW.png");
+	let attackMap = loader.load("https://i.imgur.com/bCNPaTU.png");
+	
+	let patrolMesh = new THREE.Mesh (new THREE.PlaneGeometry(16,10), new THREE.MeshBasicMaterial(
+		{map: patrolMap, transparent: true, alphaTest: 0, side:THREE.DoubleSide}));
+	let hideMesh = new THREE.Mesh (new THREE.PlaneGeometry(16,10), new THREE.MeshBasicMaterial(
+		{map: hideMap, transparent: true, alphaTest: 0, side:THREE.DoubleSide}));
+	let attackMesh = new THREE.Mesh (new THREE.PlaneGeometry(16,10), new THREE.MeshBasicMaterial(
+		{map: attackMap, transparent: true, alphaTest: 0, side:THREE.DoubleSide}));
+	
+	let preditorStateSign = new THREE.Group();
+	preditorStateSign.add (patrolMesh,hideMesh,attackMesh);
+	
+	return preditorStateSign;
+}
+function onDocumentMouseDown(event) {
+	event.preventDefault();
+	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+	
+	raycaster.setFromCamera(mouse, camera);
+	
+	var intersects = raycaster.intersectObjects(pickables);
+	if (intersects.length > 0) {
+		target.position.copy(intersects[0].point);
+	}
+}
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+function checkRaycaster(){
+
+	let preditorToTarget = target.position.clone().sub(preditor.pos);
+	let preditorDir = preditor.mesh.localToWorld(new THREE.Vector3(1,0,0))
+	.sub (preditor.mesh.localToWorld (new THREE.Vector3(0,0,0))).normalize();
+	preditorRaycaster.set (preditor.pos, preditorDir);
+	
+	let intersects = preditorRaycaster.intersectObjects(pickables,true);
+    if (intersects.length > 0) {
+		if(intersects[0].object.name == target.name)
+			hide = false;
+		else
+			hide = true;		
+		$('#name').text(intersects[0].object.name);
+    }
+	
+	let preditordistance = preditor.pos.distanceTo(target.position);
+	
+	if(preditorToTarget.dot(preditorDir) > 0 && preditordistance < 40){
+		preditor.fsm.shoot();
+		$('#inView').text ('soldier in view');
+	}
+	else{
+		preditor.fsm.depart();
+		$('#inView').text ('soldier NOT in view');
+	}
+	
+}	
+
+setInterval(function () {
+	clock.elapsedTime = 0;
+}, 8800);
+
+function animate() {
+	
+	requestAnimationFrame(animate);
+	
+	let dt = clock.getDelta();
+	let radius = 60;
+	let R = 120;
+	let omega = HH/R;  
+	theta += omega*dt*10;
+	let count = theta/ (2*Math.PI);
+	if(count%2 < 1)
+		prey.pos.set(radius*Math.cos(theta)-60,0,-radius * Math.sin(theta));
+	else
+		prey.pos.set(-radius*Math.sin(theta + Math.PI/2)+60,0,radius*Math.cos(theta+Math.PI/2));
+		
+	preditor.update(dt);
+	checkRaycaster();
+	prey.update(dt);
+	
+
+	renderer.render(scene, camera);
+}
+
+</script>
+</body>
+</html>
