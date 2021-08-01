@@ -200,7 +200,7 @@ class Agent extends Avatar {
 			
 				
 				if(dt > 8){
-					let back = preditor.mesh.localToWorld(new THREE.Vector3(-10,0,10))
+					let back = preditor.mesh.localToWorld(new THREE.Vector3(20,0,-20));
 					super.setPatrolTarget(back.x,0,back.z);
 					$('#Check').text ('Check Behind');
 				}
@@ -321,7 +321,7 @@ function init() {
 	plane.rotation.x = -Math.PI / 2;
 	pickables = [plane];
 
-	preditor = new Agent (new THREE.Vector3(-10,0,10), preditorMesh(), 'T-Rex', initFSM());
+	preditor = new Agent (new THREE.Vector3(), preditorMesh(), 'T-Rex', initFSM());
 	preditor.stateSign = stateSign();
 	scene.add (preditor.stateSign);
 	
@@ -472,7 +472,7 @@ function checkRaycaster(){
 
 setInterval(function () {
 	clock.elapsedTime = 0;
-}, 8500);
+}, 9000);
 
 function animate() {
 	
