@@ -154,6 +154,7 @@ class Agent extends Avatar {
 					
 			if (this.fsm.state === 'hide')
 				super.setHideTarget (target.position.x,0,target.position.z);
+				
 			if (this.fsm.state === 'patrol'){
 			
 				super.setBrake(10);
@@ -194,8 +195,8 @@ class Agent extends Avatar {
 class Obstacle {
 	constructor (center,size) {
 		this.center = center.clone();  
-		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,2,20),
-			new THREE.MeshBasicMaterial());
+		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,10,20),
+			new THREE.MeshNormalMaterial());
 		this.mesh.position.copy (center);
 		this.size = size;
 		scene.add (this.mesh)
@@ -207,10 +208,9 @@ class Obstacle {
 var camera, scene, renderer,clock;
 var keyboard = new KeyboardState();
 var raycaster = new THREE.Raycaster();
-var soldier,leader;
-var bullets = [], firePoint, firePoint2,attack,attack2;
+var soldier,leader,pickables = [];
+var bullets = [],attack,attack2;
 var fire = false;
-var hudCamera, hudScene, zoom = false;
 
 
 init();
@@ -232,8 +232,6 @@ function init() {
 	window.addEventListener('resize', onWindowResize, false);
     var gridXZ = new THREE.GridHelper(240, 24, 'red', 'white');
     scene.add(gridXZ);
-	
-	//document.addEventListener("pointerdown",onDocumentMouseDown,false);
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	soldier = new Agent(new THREE.Vector3(),soldierMesh(),"soldier");
 	scene.obstacles = [];
@@ -243,14 +241,8 @@ function init() {
 	scene.obstacles[0].mesh.name = 'obstacles';
 	scene.obstacles[1].mesh.name = 'obstacles';
 	scene.obstacles[2].mesh.name = 'obstacles';
-	pickables.push (target,scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh);
+	pickables.push (scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh);
 	///////////////////////////////////////////////////////////////////////////////////
-	hudScene = new THREE.Scene();
-    hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
-    hudScene.add (new THREE.Mesh (new THREE.PlaneGeometry(40,40), new THREE.MeshBasicMaterial({color:'yellow', transparent:true,opacity:0.3})));
-    hudScene.add (makeCross());
-
-    hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
 	
 }
 function soldierMesh() {
@@ -287,20 +279,6 @@ function soldierMesh() {
 	soldier.add(iconZX, pointer, body,attack,attack2);
 	return soldier;
 }
-function makeCross() {
-	let cross = new THREE.Group();
-	
-	let geometry0 = new THREE.Geometry();
-	geometry0.vertices.push (new THREE.Vector3(-12,0,0), new THREE.Vector3(12,0,0));
-	let line0 = new THREE.Line (geometry0, new THREE.LineBasicMaterial({color:'black'}));
-
-	let geometry1 = new THREE.Geometry();
-	geometry1.vertices.push (new THREE.Vector3(0,-12,0), new THREE.Vector3(0,12,0));
-	let line1 = new THREE.Line (geometry1, new THREE.LineBasicMaterial({color:'black'}));
-	
-	cross.add (line0, line1);	
-	return cross;
-}
 function SoldierMoving(){
    keyboard.update();
 
@@ -318,29 +296,13 @@ function SoldierMoving(){
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 }
-function checkAim(){
-    if(keyboard.down("shift")){
-        zoom = true;
-        camera.position.set(0.4,3.7,0);
-        camera.fov = 25;
-        camera.lookAt(firePoint.getWorldPosition(new THREE.Vector3()).clone().add(new THREE.Vector3(0,2,0)));
-    }
-    else if(keyboard.up("shift")){
-        zoom = false;
-        camera.position.set(3,3,-15);
-        camera.fov = 40;
-        camera.lookAt(firePoint.getWorldPosition(new THREE.Vector3()));
-    }
-    
-    camera.updateProjectionMatrix();
-}
 function SoldierShooting(){
 	if(keyboard.pressed('space')){
 		
 		fire = true;
 		
 		const geometry = new THREE.SphereGeometry( 0.5, 32, 32 );
-		const material = new THREE.MeshBasicMaterial();
+		const material = new THREE.MeshBasicMaterial({color : "yellow"});
 		let bullet = new THREE.Mesh( geometry, material );
 			attack.getWorldPosition(bullet.position);
 
@@ -358,7 +320,6 @@ function SoldierShooting(){
 	}
 	
 }
-
 function animate() {
 	keyboard.update();
 	SoldierMoving();
@@ -369,20 +330,19 @@ function animate() {
     });
 	
 	let dt = clock.getDelta();
-	let time = clock.getElapsedTime();
-	soldier.update(dt, time);
-	
-	 let x = -1, y = -1;
+	soldier.update(dt);
+
+	let x = -1, y = -1;
     for(let i = 0; i < bullets.length; i++){
         let prePosition = bullets[i].bullet.position;
         let nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(2));
 
-        for(let j = 0; j < targets.length; j++){
+        for(let j = 0; j < pickables.length; j++){
             let xMin = -5, xMax = 5;
             let zMin = -5, zMax = 5;
 
-            let bulletPreLocalPosition = targets[j].worldToLocal(prePosition.clone()).clone();
-            let bulletNextLocalPosition = targets[j].worldToLocal(nextPosition.clone()).clone();
+            let bulletPreLocalPosition = pickables[j].worldToLocal(prePosition.clone()).clone();
+            let bulletNextLocalPosition = pickables[j].worldToLocal(nextPosition.clone()).clone();
 
             let c1 = 0, c2 = 0;
             
@@ -412,11 +372,17 @@ function animate() {
                 x = i;
                 y = j;
             }
-
-
         }
 
         bullets[i].bullet.position.copy(nextPosition);
+    }
+	
+	if(x !== -1 && y !== -1){
+
+        scene.remove(bullets[x].bullet)//, pickables.[y]);
+
+        bullets.splice(x,1);
+        //pickables.splice(y,1);
     }
 	
 	// 讓「帥蓋」方位永遠固定
