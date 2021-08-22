@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#heading{
+	text-align: center;
+	position:absolute;
+	width:100vw;
+}
+</style>
+</head>
+<body style='overflow:hidden'> 
+
+<div id='heading'>
+	<h3 style = "color:red">Soldier Attack<br></h3>
+</div>
+
+<script src="state-machine.js"></script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+
+<script type ="module">
+javascript:(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+
+import * as THREE from "https://threejs.org/build/three.module.js";
+import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+
+( function( ) {
+      Math.clamp = function(val,min,max) {
+          return Math.min(Math.max(val,min),max);
+      } 
+} )();
+
+class Avatar {
+  constructor(pos, mesh) {
+    this.pos = pos.clone();
+    this.vel = new THREE.Vector3();
+    this.force = new THREE.Vector3();
+    this.MAXSPEED = 40;
+    this.ARRIVAL_R = 30;
+    
+    this.size = 35;    
+    this.angle = 0; // for orientable agent
+    this.mesh = mesh;
+    scene.add (mesh);
+
+    this.target = null;
+    this.steermode = '';
+    this.BRAKING = 0; // no brake
+  }
+  
+  update(dt) {
+    //console.log ('in avatar update ...');
+    
+    this.accumulateForce();
+    this.vel.add(this.force.clone().multiplyScalar(dt));
+
+	// ARRIVAL: velocity modulation
+    if (this.target !== null) {   
+      let diff = this.target.clone().sub(this.pos)
+      let dst = diff.length();
+      if (dst < this.ARRIVAL_R) {
+        this.vel.setLength(dst)
+      }
+    }
+    
+   	// MAXSPEED modulation
+	let speed = this.vel.length()
+	this.vel.setLength(Math.clamp (speed, 0, this.MAXSPEED))
+	this.pos.add(this.vel.clone().multiplyScalar(dt))
+    this.mesh.position.copy(this.pos)
+    
+    // for orientable agent
+    if (this.vel.length() > 1.0) {
+	    this.angle = Math.atan2 (-this.vel.z, this.vel.x)
+    	this.mesh.rotation.y = this.angle
+   	}
+  }
+  
+  setSeekTarget (x,y,z) {
+    this.BRAKING = 0; // release Brake while seek
+	this.steerMode = 'SEEK';
+  	this._setTarget (x,y,z);	
+  }
+  
+  // target, Patrol & Hide  
+  setPatrolTarget (x,y,z) {
+	this.BRAKING = 0;
+    this.steerMode = 'patrol';
+  	this._setTarget (x,y,z);	
+  }
+  
+  setAttackTarget (x,y,z) {
+	this.BRAKING = 0;
+	this.steerMode = 'attack';
+  	//this._setTarget (x,y,z);	
+  }
+  
+  setHideTarget (x,y,z) {
+	this.BRAKING = 0;
+	this.steerMode = 'hide';
+  	this._setTarget (x,y,z);	
+  }
+ 
+  _setTarget(x,y,z) {  // do not use directly
+  	if (this.target !== null)
+    	this.target.set(x,y,z);
+    else {
+    	this.target = new THREE.Vector3(x,y,z);
+    }
+  }
+  
+  targetInducedForce (targetPos) { 
+	 let sign = 0;
+	 if (this.steerMode === 'patrol' || this.steerMode === 'SEEK')
+		sign = 1;
+	 else if (this.steerMode === 'hide')
+		sign = -1;
+	
+	 return targetPos.clone().sub(this.pos).normalize().multiplyScalar(sign*this.MAXSPEED).sub(this.vel);
+  }
+  
+  setBrake (brake) {  // make the avatar stop gracefully
+  	this.BRAKING = brake;  	
+  	this.target = null;  // release target
+  }
+  
+  accumulateForce() {
+    if (this.target) 
+    	this.force.copy(this.targetInducedForce (this.target));
+    else
+    	this.force.set (0,0,0);  // for null-target initial force
+    	
+	// braking ...
+    this.force.add (this.vel.clone().multiplyScalar(-this.BRAKING));
+   }
+
+}
+class Agent extends Avatar {
+   constructor (pos, mesh, name = '', fsm) {
+      super (pos, mesh);
+	  this.fsm = fsm;
+	  this.stateSign = null;
+   }
+   update (dt) {
+   	
+		super.update (dt);  // calling avatar update
+
+		// agent related ...  
+		// how to make the brain not so hyper-active
+		if (this.fsm) {
+			$('#preditorState').text (this.fsm.state);
+					
+			if (this.fsm.state === 'hide')
+				super.setHideTarget (target.position.x,0,target.position.z);
+			if (this.fsm.state === 'patrol'){
+			
+				super.setBrake(10);
+				this.mesh.children[0].material.visible = true;
+				this.mesh.children[1].material.visible = false;
+			}
+			if (this.fsm.state === 'attack'){
+				this.mesh.children[0].material.visible = false;
+				this.mesh.children[1].material.visible = true;
+			}
+				
+		}
+		if (this.stateSign) {
+			this.stateSign.position.copy (this.pos);
+			this.stateSign.position.y = 10;
+			this.stateSign.lookAt (camera.position.x, 50, camera.position.z);
+			
+			if (this.fsm.state === 'patrol') {
+				this.stateSign.children[0].material.visible = true;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+			}
+			if (this.fsm.state === 'hide') {
+				
+				this.stateSign.children[1].material.visible = true;
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+			}
+			if(this.fsm.state === 'attack'){
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = true;
+			}
+		}
+	
+   }
+}
+class Obstacle {
+	constructor (center,size) {
+		this.center = center.clone();  
+		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,2,20),
+			new THREE.MeshBasicMaterial());
+		this.mesh.position.copy (center);
+		this.size = size;
+		scene.add (this.mesh)
+	}
+}
+
+
+
+var camera, scene, renderer,clock;
+var keyboard = new KeyboardState();
+var raycaster = new THREE.Raycaster();
+var soldier,leader;
+var bullets = [], firePoint, firePoint2,attack,attack2;
+var fire = false;
+var hudCamera, hudScene, zoom = false;
+
+
+init();
+animate();
+
+
+function init() {
+	clock = new THREE.Clock();
+	scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.z = 120;
+	camera.position.y = 100;
+	
+	renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x888888);
+    let controls = new OrbitControls(camera, renderer.domElement);
+    document.body.appendChild(renderer.domElement);
+	window.addEventListener('resize', onWindowResize, false);
+    var gridXZ = new THREE.GridHelper(240, 24, 'red', 'white');
+    scene.add(gridXZ);
+	
+	//document.addEventListener("pointerdown",onDocumentMouseDown,false);
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	soldier = new Agent(new THREE.Vector3(),soldierMesh(),"soldier");
+	scene.obstacles = [];
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(40,0,-70), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(-20,0,0), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(65,0,0), 15) )
+	scene.obstacles[0].mesh.name = 'obstacles';
+	scene.obstacles[1].mesh.name = 'obstacles';
+	scene.obstacles[2].mesh.name = 'obstacles';
+	pickables.push (target,scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh);
+	///////////////////////////////////////////////////////////////////////////////////
+	hudScene = new THREE.Scene();
+    hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
+    hudScene.add (new THREE.Mesh (new THREE.PlaneGeometry(40,40), new THREE.MeshBasicMaterial({color:'yellow', transparent:true,opacity:0.3})));
+    hudScene.add (makeCross());
+
+    hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
+	
+}
+function soldierMesh() {
+	let loader = new THREE.TextureLoader();
+	let icon = loader.load("https://i.imgur.com/7yl0PLz.png");
+	var soldier = new THREE.Group();
+	var mat = new THREE.MeshNormalMaterial();
+	var body = new THREE.Mesh(
+		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
+		mat
+	);
+	var pointer = new THREE.Mesh(
+		new THREE.BoxGeometry(15, 2, 2),
+		mat
+	);
+	body.position.y = 2;
+	pointer.position.set(5, 2, 0);
+
+	// '帥'蓋
+	let iconZX = new THREE.Group();
+	let circle = new THREE.Mesh(
+		new THREE.CircleGeometry(8, 8),
+		new THREE.MeshBasicMaterial({ map: icon })
+	);
+	circle.position.y = 4;
+	circle.rotation.x = -Math.PI / 2;
+	iconZX.add(circle);
+	
+	attack = new THREE.Object3D();
+	attack.position.set(5,2,0);
+	attack2 = new THREE.Object3D();
+	attack2.position.set(4,2,0);
+	
+	soldier.add(iconZX, pointer, body,attack,attack2);
+	return soldier;
+}
+function makeCross() {
+	let cross = new THREE.Group();
+	
+	let geometry0 = new THREE.Geometry();
+	geometry0.vertices.push (new THREE.Vector3(-12,0,0), new THREE.Vector3(12,0,0));
+	let line0 = new THREE.Line (geometry0, new THREE.LineBasicMaterial({color:'black'}));
+
+	let geometry1 = new THREE.Geometry();
+	geometry1.vertices.push (new THREE.Vector3(0,-12,0), new THREE.Vector3(0,12,0));
+	let line1 = new THREE.Line (geometry1, new THREE.LineBasicMaterial({color:'black'}));
+	
+	cross.add (line0, line1);	
+	return cross;
+}
+function SoldierMoving(){
+   keyboard.update();
+
+	if (keyboard.pressed("left"))
+		soldier.setSeekTarget(soldier.pos.x - 40, 0, soldier.pos.z);
+	if (keyboard.pressed("right"))
+		soldier.setSeekTarget(soldier.pos.x + 40, 0, soldier.pos.z);
+	if (keyboard.pressed("up")) 
+		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z - 40);
+	if (keyboard.pressed("down")) 
+		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z + 40);
+	
+}function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+function checkAim(){
+    if(keyboard.down("shift")){
+        zoom = true;
+        camera.position.set(0.4,3.7,0);
+        camera.fov = 25;
+        camera.lookAt(firePoint.getWorldPosition(new THREE.Vector3()).clone().add(new THREE.Vector3(0,2,0)));
+    }
+    else if(keyboard.up("shift")){
+        zoom = false;
+        camera.position.set(3,3,-15);
+        camera.fov = 40;
+        camera.lookAt(firePoint.getWorldPosition(new THREE.Vector3()));
+    }
+    
+    camera.updateProjectionMatrix();
+}
+function SoldierShooting(){
+	if(keyboard.pressed('space')){
+		
+		fire = true;
+		
+		const geometry = new THREE.SphereGeometry( 0.5, 32, 32 );
+		const material = new THREE.MeshBasicMaterial();
+		let bullet = new THREE.Mesh( geometry, material );
+			attack.getWorldPosition(bullet.position);
+
+		let point = new THREE.Vector3();
+			attack2.getWorldPosition(point);
+
+		scene.add(bullet);
+
+		let direction = bullet.position.clone().sub(point).normalize(); //創造方向
+
+		bullets.push({
+			bullet: bullet,
+			direction: direction,
+		});
+	}
+	
+}
+
+function animate() {
+	keyboard.update();
+	SoldierMoving();
+	SoldierShooting();
+	
+	bullets.forEach(function(data){
+		data.bullet.position.add(data.direction.clone().setLength(10));
+    });
+	
+	let dt = clock.getDelta();
+	let time = clock.getElapsedTime();
+	soldier.update(dt, time);
+	
+	 let x = -1, y = -1;
+    for(let i = 0; i < bullets.length; i++){
+        let prePosition = bullets[i].bullet.position;
+        let nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(2));
+
+        for(let j = 0; j < targets.length; j++){
+            let xMin = -5, xMax = 5;
+            let zMin = -5, zMax = 5;
+
+            let bulletPreLocalPosition = targets[j].worldToLocal(prePosition.clone()).clone();
+            let bulletNextLocalPosition = targets[j].worldToLocal(nextPosition.clone()).clone();
+
+            let c1 = 0, c2 = 0;
+            
+            if(bulletPreLocalPosition.x < xMin)
+                c1 += 1;
+            if(bulletPreLocalPosition.x > xMax)
+                c1 += 2;
+            if(bulletPreLocalPosition.z < zMin)
+                c1 += 4;
+            if(bulletPreLocalPosition.z > zMax)
+                c1 += 8;
+            
+            if(bulletNextLocalPosition.x < xMin)
+                c2 += 1;
+            if(bulletNextLocalPosition.x > xMax)
+                c2 += 2;
+            if(bulletNextLocalPosition.z < zMin)
+                c2 += 4;
+            if(bulletNextLocalPosition.z > zMax)
+                c2 += 8;
+
+            if(c1 === c2 && c1 === 0){
+                x = i;
+                y = j;
+            }
+            else if(c1 & c2 === 0){
+                x = i;
+                y = j;
+            }
+
+
+        }
+
+        bullets[i].bullet.position.copy(nextPosition);
+    }
+	
+	// 讓「帥蓋」方位永遠固定
+	soldier.mesh.children[0].quaternion.copy(
+		soldier.mesh.quaternion.clone().invert()
+	);
+
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
+  
+}
+
+</script>
+</body>
+</html>
