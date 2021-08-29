@@ -40,7 +40,7 @@ class Avatar {
     this.MAXSPEED = 40;
     this.ARRIVAL_R = 30;
     
-    this.size = 35;    
+    this.size = 15;    
     this.angle = 0; // for orientable agent
     this.mesh = mesh;
     scene.add (mesh);
@@ -195,10 +195,11 @@ class Agent extends Avatar {
 class Obstacle {
 	constructor (center,size) {
 		this.center = center.clone();  
-		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,10,20),
+		this.mesh = new THREE.Mesh (new THREE.CylinderGeometry(size,size,20,20),
 			new THREE.MeshNormalMaterial());
 		this.mesh.position.copy (center);
 		this.size = size;
+		this.mesh.position.y = 5;
 		scene.add (this.mesh)
 	}
 }
@@ -211,6 +212,7 @@ var raycaster = new THREE.Raycaster();
 var soldier,leader,pickables = [];
 var bullets = [],attack,attack2;
 var fire = false;
+var hudCamera, hudScene, zoom = false;
 
 
 init();
@@ -236,14 +238,36 @@ function init() {
 	soldier = new Agent(new THREE.Vector3(),soldierMesh(),"soldier");
 	scene.obstacles = [];
 	scene.obstacles.push ( new Obstacle (new THREE.Vector3(40,0,-70), 15) )
-	scene.obstacles.push ( new Obstacle (new THREE.Vector3(-20,0,0), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(-90,0,0), 15) )
 	scene.obstacles.push ( new Obstacle (new THREE.Vector3(65,0,0), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(20,0,90), 15) )
 	scene.obstacles[0].mesh.name = 'obstacles';
 	scene.obstacles[1].mesh.name = 'obstacles';
 	scene.obstacles[2].mesh.name = 'obstacles';
-	pickables.push (scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh);
+	scene.obstacles[3].mesh.name = 'obstacles';
+	pickables.push (scene.obstacles[0].mesh,scene.obstacles[1].mesh,scene.obstacles[2].mesh,scene.obstacles[3].mesh);
 	///////////////////////////////////////////////////////////////////////////////////
+	hudScene = new THREE.Scene();
+    hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
+    hudScene.add (new THREE.Mesh (new THREE.PlaneGeometry(40,40), new THREE.MeshBasicMaterial({color:'yellow', transparent:true,opacity:0.3})));
+    hudScene.add (makeCross());
+
+    hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
 	
+}
+function makeCross() {
+	let cross = new THREE.Group();
+	
+	let geometry0 = new THREE.BufferGeometry();
+	geometry0.setAttribute(new THREE.Vector3(-12,0,0), new THREE.Vector3(12,0,0));
+	let line0 = new THREE.Line (geometry0, new THREE.LineBasicMaterial({color:'black'}));
+
+	let geometry1 = new THREE.BufferGeometry();
+	geometry1.setAttribute(new THREE.Vector3(0,-12,0), new THREE.Vector3(0,12,0));
+	let line1 = new THREE.Line (geometry1, new THREE.LineBasicMaterial({color:'black'}));
+	
+	cross.add (line0, line1);	
+	return cross;
 }
 function soldierMesh() {
 	let loader = new THREE.TextureLoader();
@@ -320,8 +344,25 @@ function SoldierShooting(){
 	}
 	
 }
+function checkAim(){
+    if(keyboard.down("shift")){
+        zoom = true;
+        camera.position.set(0.4,3.7,0);
+        camera.fov = 25;
+        camera.lookAt(attack.getWorldPosition(new THREE.Vector3()).clone().add(new THREE.Vector3(0,2,0)));
+    }
+    else if(keyboard.up("shift")){
+        zoom = false;
+        camera.position.set(3,3,-15);
+        camera.fov = 40;
+        camera.lookAt(attack.getWorldPosition(new THREE.Vector3()));
+    }
+    
+    camera.updateProjectionMatrix();
+}
 function animate() {
 	keyboard.update();
+	checkAim();
 	SoldierMoving();
 	SoldierShooting();
 	
@@ -390,8 +431,14 @@ function animate() {
 		soldier.mesh.quaternion.clone().invert()
 	);
 
-	requestAnimationFrame(animate);
-	renderer.render(scene, camera);
+	
+	renderer.clear(true);
+    renderer.render (scene, camera); 
+    if(zoom)
+        renderer.render (hudScene, hudCamera); 
+
+
+	requestAnimationFrame( animate ); 
   
 }
 
