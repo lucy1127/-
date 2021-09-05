@@ -216,39 +216,14 @@ class Agent extends Avatar {
 				this.mesh.children[2].material.visible = true;
 			}
 			if (this.fsm.state === "patrol") {
-				this.mesh.children[0].material.visible = true;
-				this.mesh.children[1].material.visible = false;
+				this.mesh.children[0].material.visible = false;
+				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
 			}
 			if (this.fsm.state === "attack") {
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
-			}
-		}
-		if (this.stateSign) {
-			this.stateSign.position.copy(this.pos);
-			this.stateSign.position.y = 10;
-			this.stateSign.lookAt(
-				camera.position.x,
-				50,
-				camera.position.z
-			);
-
-			if (this.fsm.state === "patrol") {
-				this.stateSign.children[0].material.visible = true;
-				this.stateSign.children[1].material.visible = false;
-				this.stateSign.children[2].material.visible = false;
-			}
-			if (this.fsm.state === "hide") {
-				this.stateSign.children[1].material.visible = true;
-				this.stateSign.children[0].material.visible = false;
-				this.stateSign.children[2].material.visible = false;
-			}
-			if (this.fsm.state === "attack") {
-				this.stateSign.children[0].material.visible = false;
-				this.stateSign.children[1].material.visible = false;
-				this.stateSign.children[2].material.visible = true;
 			}
 		}
 	}
@@ -349,8 +324,6 @@ function init() {
 		"T-Rex",
 		initFSM()
 	);
-	preditor.stateSign = stateSign();
-	scene.add(preditor.stateSign);
 
 	target = new Agent(
 		new THREE.Vector3(30, 0, 0),
@@ -412,24 +385,37 @@ function targetMesh() {
 function preditorMesh() {
 	let loader = new THREE.TextureLoader();
 	let icon = loader.load("https://i.imgur.com/9N9ohZ9.jpeg");
-	let redTex = loader.load("https://i.imgur.com/93FViDI.png");
+	let loaderBody = new THREE.TextureLoader();
+	let iconBody = loader.load("https://i.imgur.com/9N9ohZ9.jpeg");
+	iconBody.wrapS = THREE.RepeatWrapping;
+	iconBody.wrapT = THREE.RepeatWrapping;
+	iconBody.repeat.set(5, 1);
+	
+	
 	var mat = new THREE.MeshNormalMaterial();
 	var captain = new THREE.Group();
 	var body = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({color:"green"})
+		new THREE.MeshBasicMaterial({
+		color:"green",
+		map: iconBody,
+		side: THREE.DoubleSide,
+		})
 	);
 	var body2 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
 		new THREE.MeshBasicMaterial({
-			map: redTex,
+			color:"red",
+			map: iconBody,
 			side: THREE.DoubleSide,
 		})
 	);
 	var body3 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
 		new THREE.MeshBasicMaterial({
-			color:"yellow"
+			color:"yellow",
+			map: iconBody,
+			side: THREE.DoubleSide,
 		})
 	);
 	var pointer = new THREE.Mesh(
@@ -452,45 +438,6 @@ function preditorMesh() {
 
 	captain.add(body, body2,body3, iconZX, pointer);
 	return captain;
-}
-function stateSign() {
-	let loader = new THREE.TextureLoader();
-	let patrolMap = loader.load("https://i.imgur.com/UrpQ83j.png");
-	let hideMap = loader.load("https://i.imgur.com/0er4y6I.png");
-	let attackMap = loader.load("https://i.imgur.com/bCNPaTU.png");
-
-	let patrolMesh = new THREE.Mesh(
-		new THREE.PlaneGeometry(16, 10),
-		new THREE.MeshBasicMaterial({
-			map: patrolMap,
-			transparent: true,
-			alphaTest: 0,
-			side: THREE.DoubleSide,
-		})
-	);
-	let hideMesh = new THREE.Mesh(
-		new THREE.PlaneGeometry(16, 10),
-		new THREE.MeshBasicMaterial({
-			map: hideMap,
-			transparent: true,
-			alphaTest: 0,
-			side: THREE.DoubleSide,
-		})
-	);
-	let attackMesh = new THREE.Mesh(
-		new THREE.PlaneGeometry(16, 10),
-		new THREE.MeshBasicMaterial({
-			map: attackMap,
-			transparent: true,
-			alphaTest: 0,
-			side: THREE.DoubleSide,
-		})
-	);
-
-	let preditorStateSign = new THREE.Group();
-	preditorStateSign.add(patrolMesh, hideMesh, attackMesh);
-
-	return preditorStateSign;
 }
 function onDocumentMouseDown(event) {
 	event.preventDefault();

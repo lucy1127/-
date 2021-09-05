@@ -239,8 +239,8 @@ function init() {
 	scene.obstacles = [];
 	scene.obstacles.push ( new Obstacle (new THREE.Vector3(40,0,-70), 15) )
 	scene.obstacles.push ( new Obstacle (new THREE.Vector3(-90,0,0), 15) )
-	scene.obstacles.push ( new Obstacle (new THREE.Vector3(65,0,0), 15) )
-	scene.obstacles.push ( new Obstacle (new THREE.Vector3(20,0,90), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(100,0,0), 15) )
+	scene.obstacles.push ( new Obstacle (new THREE.Vector3(20,0,70), 15) )
 	scene.obstacles[0].mesh.name = 'obstacles';
 	scene.obstacles[1].mesh.name = 'obstacles';
 	scene.obstacles[2].mesh.name = 'obstacles';
@@ -272,11 +272,21 @@ function makeCross() {
 function soldierMesh() {
 	let loader = new THREE.TextureLoader();
 	let icon = loader.load("https://i.imgur.com/7yl0PLz.png");
+	let loaderBody = new THREE.TextureLoader();
+	let iconBody = loader.load("https://i.imgur.com/7yl0PLz.png");
+	iconBody.wrapS = THREE.RepeatWrapping;
+	iconBody.wrapT = THREE.RepeatWrapping;
+	iconBody.repeat.set(5, 1);
+	
+	
 	var soldier = new THREE.Group();
 	var mat = new THREE.MeshNormalMaterial();
 	var body = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		mat
+		new THREE.MeshBasicMaterial({
+			map: iconBody,
+			side: THREE.DoubleSide,
+		})
 	);
 	var pointer = new THREE.Mesh(
 		new THREE.BoxGeometry(15, 2, 2),
@@ -360,11 +370,88 @@ function checkAim(){
     
     camera.updateProjectionMatrix();
 }
+function ShootThrough(){
+
+	let x = -1, y = -1;
+    for(let i = 0; i < bullets.length; i++){
+		//A
+        var prePosition = bullets[i].bullet.position; 
+		//B
+        var nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(2)); 
+		//C
+		var C = nearObstacle().center;
+		var R = nearObstacle().size;
+		//console.log(C);
+
+        for(let j = 0; j < pickables.length; j++){
+			//debugger;
+            let bulletPreLocalPosition = pickables[j].worldToLocal(prePosition.clone()).clone();
+            let bulletNextLocalPosition = pickables[j].worldToLocal(nextPosition.clone()).clone();
+			
+			var ac = new THREE.Vector3();
+			ac.subVectors(C,bulletPreLocalPosition);
+			//console.log(ac);
+			var ab = new THREE.Vector3();
+			ab.subVectors(C,bulletNextLocalPosition);
+			//console.log(ab);
+			//let length = ac.sub(ac.projectOnVector(ab)).length();
+			let length = new THREE.Vector2();
+			length = (ac.sub(ac.projectOnVector(ab))).length();
+			//console.log(ac.projectOnVector(ab));
+			
+			if(length < R){
+                x = i;
+                y = j;
+				console.log(x,y);
+            }
+
+        }
+		  
+
+        bullets[i].bullet.position.copy(nextPosition);
+    }
+	
+	if(x !== -1 && y !== -1){
+		
+		//console.log(x,y);
+        scene.remove(bullets[x].bullet);//, pickables[y]);
+
+        bullets.splice(x,1);
+        pickables.splice(y,1);
+    }
+}
+function nearObstacle() {
+	var distances = [];
+	var distance = soldier.pos.distanceTo(
+		scene.obstacles[0].mesh.position
+	);
+
+	distances.push(distance);
+	var distance1 = soldier.pos.distanceTo(
+		scene.obstacles[1].mesh.position
+	);
+	distances.push(distance1);
+	var distance2 = soldier.pos.distanceTo(
+		scene.obstacles[2].mesh.position
+	);
+	distances.push(distance2);
+
+	var min = findMin(distance, distance1);
+	min = findMin(min, distance2);
+
+	if (min === distance) return scene.obstacles[0];
+	if (min === distance1) return scene.obstacles[1];
+	if (min === distance2) return scene.obstacles[2];
+}
+function findMin(num1, num2) {
+	return num1 > num2 ? num2 : num1;
+}
 function animate() {
 	keyboard.update();
 	checkAim();
 	SoldierMoving();
 	SoldierShooting();
+	ShootThrough();
 	
 	bullets.forEach(function(data){
 		data.bullet.position.add(data.direction.clone().setLength(10));
@@ -373,58 +460,7 @@ function animate() {
 	let dt = clock.getDelta();
 	soldier.update(dt);
 
-	let x = -1, y = -1;
-    for(let i = 0; i < bullets.length; i++){
-        let prePosition = bullets[i].bullet.position;
-        let nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(2));
-
-        for(let j = 0; j < pickables.length; j++){
-            let xMin = -5, xMax = 5;
-            let zMin = -5, zMax = 5;
-
-            let bulletPreLocalPosition = pickables[j].worldToLocal(prePosition.clone()).clone();
-            let bulletNextLocalPosition = pickables[j].worldToLocal(nextPosition.clone()).clone();
-
-            let c1 = 0, c2 = 0;
-            
-            if(bulletPreLocalPosition.x < xMin)
-                c1 += 1;
-            if(bulletPreLocalPosition.x > xMax)
-                c1 += 2;
-            if(bulletPreLocalPosition.z < zMin)
-                c1 += 4;
-            if(bulletPreLocalPosition.z > zMax)
-                c1 += 8;
-            
-            if(bulletNextLocalPosition.x < xMin)
-                c2 += 1;
-            if(bulletNextLocalPosition.x > xMax)
-                c2 += 2;
-            if(bulletNextLocalPosition.z < zMin)
-                c2 += 4;
-            if(bulletNextLocalPosition.z > zMax)
-                c2 += 8;
-
-            if(c1 === c2 && c1 === 0){
-                x = i;
-                y = j;
-            }
-            else if(c1 & c2 === 0){
-                x = i;
-                y = j;
-            }
-        }
-
-        bullets[i].bullet.position.copy(nextPosition);
-    }
 	
-	if(x !== -1 && y !== -1){
-
-        scene.remove(bullets[x].bullet)//, pickables.[y]);
-
-        bullets.splice(x,1);
-        //pickables.splice(y,1);
-    }
 	
 	// 讓「帥蓋」方位永遠固定
 	soldier.mesh.children[0].quaternion.copy(
