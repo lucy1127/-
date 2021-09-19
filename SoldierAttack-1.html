@@ -26,6 +26,9 @@ javascript:(function(){var script=document.createElement('script');script.onload
 
 import * as THREE from "https://threejs.org/build/three.module.js";
 import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+import { Line2 } from 'https://threejs.org/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'https://threejs.org/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'https://threejs.org/examples/jsm/lines/LineMaterial.js';
 
 ( function( ) {
       Math.clamp = function(val,min,max) {
@@ -73,7 +76,7 @@ class Avatar {
     this.mesh.position.copy(this.pos)
     
     // for orientable agent
-    if (this.vel.length() > 1.0) {
+    if (this.vel.length() > 2.0) {
 	    this.angle = Math.atan2 (-this.vel.z, this.vel.x)
     	this.mesh.rotation.y = this.angle
    	}
@@ -405,6 +408,7 @@ var soldier,preditor,prey,pickables = [],targets = [];
 var bullets = [],attack,attack2;
 var fire = false,count = 0;;
 var hudCamera, hudScene, zoom = false;
+var pointerHead,pointer;
 
 
 init();
@@ -418,9 +422,14 @@ function init() {
     camera.position.z = 120;
 	camera.position.y = 100;
 	
-	renderer = new THREE.WebGLRenderer();
+	
+	 renderer = new THREE.WebGLRenderer({
+        antialias: true
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x888888);
+    renderer.autoClear = false;
+	
     let controls = new OrbitControls(camera, renderer.domElement);
     document.body.appendChild(renderer.domElement);
 	window.addEventListener('resize', onWindowResize, false);
@@ -442,7 +451,7 @@ function init() {
 	///////////////////////////////////////////////////////////////////////////////////
 	hudScene = new THREE.Scene();
     hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
-    hudScene.add (new THREE.Mesh (new THREE.PlaneGeometry(40,40), new THREE.MeshBasicMaterial({color:'yellow', transparent:true,opacity:0.3})));
+    hudScene.add (new THREE.Mesh (new THREE.PlaneGeometry(40,40), new THREE.MeshBasicMaterial({color:'yellow', transparent:true,opacity:0.2})));
     hudScene.add (makeCross());
 
     hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
@@ -452,37 +461,27 @@ function init() {
 }
 function makeCross() {
 	
-	/*let cross = new THREE.Group();
-	let geometry0 = new THREE.BufferGeometry();
-	geometry0.setAttribute(new THREE.Vector3(-12,0,0), new THREE.Vector3(12,0,0));
-	let line0 = new THREE.Line (geometry0, new THREE.LineBasicMaterial({color:'black'}));
-
-	let geometry1 = new THREE.BufferGeometry();
-	geometry1.setAttribute(new THREE.Vector3(0,-12,0), new THREE.Vector3(0,12,0));
-	let line1 = new THREE.Line (geometry1, new THREE.LineBasicMaterial({color:'black'}));
+	let cross = new THREE.Group();
+	let points = [];
+	points.push(new THREE.Vector3(0,12,0),new THREE.Vector3(0,-12,0))
+	let points2 = [];
+	points2.push(new THREE.Vector3(12,0,0),new THREE.Vector3(-12,0,0));
 	
-	cross.add (line0, line1);	
-	return cross;*/
+	var lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+	var lineGeometry2 = new THREE.BufferGeometry().setFromPoints(points2);
+	var lineMaterial = new THREE.LineDashedMaterial({
+		color: 'black',
+		linewidth: 15,
+		dashSize: 14,
+		gapSize: 12
+	});
 	
-	const material = new THREE.LineBasicMaterial({color:'#fff'})
-    //这里用这个构造
-    const geometry = new THREE.BufferGeometry()
-    const pointsArray = new Array()
-    //加2000个顶点，范围为-1到1
-    for(let i = 0;i < 2;i++){
-      const x = -12 //范围在-1到1
-      const y = 12
-      pointsArray.push(new THREE.Vector2(x,y))
-      //顶点
-      //geometry.vertices.push(new THREE.Vector3(x,y,z))
-    }
-    //用这个api传入顶点数组
-    geometry.setFromPoints(pointsArray)
-    //下述基本一样
-    const mesh = new THREE.Line(geometry,material)
-    mesh.position.set(0,6,0)
-    scene.add(mesh)
-   // projects.push(mesh)
+	let line = new THREE.Line(lineGeometry, lineMaterial);
+	let line2 = new THREE.Line(lineGeometry2, lineMaterial);
+	cross.add(line,line2);
+	
+	return cross;
+	
 }
 function soldierMesh() {
 	let loader = new THREE.TextureLoader();
@@ -504,14 +503,14 @@ function soldierMesh() {
 	var pointerHeadTexture = loader.load("https://i.imgur.com/93FViDI.png");
 	
 
-	var pointer = new THREE.Mesh(
+	pointer = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.5, 1.5,15,32),
 		new THREE.MeshBasicMaterial({
 			map: mat,
 			side: THREE.DoubleSide
 		})
 	);
-	var pointerHead = new THREE.Mesh(
+	pointerHead = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
 		new THREE.MeshBasicMaterial({
 			map: pointerHeadTexture,
@@ -554,7 +553,7 @@ function capturerMesh() {
 	var capturer = new THREE.Group();
 	var mat = new THREE.MeshNormalMaterial();
 	var body = new THREE.Mesh(
-		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
+		new THREE.CylinderGeometry(8, 8, 4, 32, 1, true),
 		new THREE.MeshBasicMaterial({
 			color: "lightGreen",
 			map: iconBody,
@@ -635,15 +634,16 @@ function SoldierMoving(){
    keyboard.update();
 
 	if (keyboard.pressed("left"))
-		soldier.setSeekTarget(soldier.pos.x - 40, 0, soldier.pos.z);
+		soldier.setSeekTarget(soldier.pos.x - 10, 0, soldier.pos.z);
 	if (keyboard.pressed("right"))
-		soldier.setSeekTarget(soldier.pos.x + 40, 0, soldier.pos.z);
+		soldier.setSeekTarget(soldier.pos.x + 10, 0, soldier.pos.z);
 	if (keyboard.pressed("up")) 
-		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z - 40);
+		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z + 10);
 	if (keyboard.pressed("down")) 
-		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z + 40);
+		soldier.setSeekTarget(soldier.pos.x, 0, soldier.pos.z - 10);
 	
-}function onWindowResize() {
+}
+function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -651,10 +651,9 @@ function SoldierMoving(){
 function SoldierShooting(){
 	if(keyboard.pressed('space')){
 		  
-		
 		fire = true;
 		count = count + 1;
-		if(count < 4){
+		if(count < 2){
 			const geometry = new THREE.SphereGeometry( 0.5, 32, 32 );
 			const material = new THREE.MeshBasicMaterial({color : "yellow"});
 			let bullet = new THREE.Mesh( geometry, material );
@@ -677,20 +676,24 @@ function SoldierShooting(){
 		}
 		
 	}
+	if(keyboard.pressed('enter')){
+		count = 0;
+		$('#Check').text ('Filled Bullet !!!');
+	}
 	
 }
 function checkAim(){
     if(keyboard.down("shift")){
         zoom = true;
-        camera.position.set(4,3,0);
-        camera.fov = 25;
-        camera.lookAt(attack.getWorldPosition(new THREE.Vector3()).clone().add(new THREE.Vector3(0,2,0)));
+        camera.position.set(5,2,0);
+        camera.fov = 15;
+        camera.lookAt(pointerHead.getWorldPosition(new THREE.Vector3()).clone().add(new THREE.Vector3(0,5,0)));
     }
     else if(keyboard.up("shift")){
         zoom = false;
-        camera.position.set(3,3,-15);
+        camera.position.set(-20,4,0);
         camera.fov = 40;
-        camera.lookAt(attack.getWorldPosition(new THREE.Vector3()));
+        camera.lookAt(pointerHead.getWorldPosition(new THREE.Vector3()));
     }
     
     camera.updateProjectionMatrix();
@@ -702,7 +705,7 @@ function ShootThrough(){
 		
 		
         let prePosition = bullets[i].bullet.position; 
-        let nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(10)); 
+        let nextPosition = bullets[i].bullet.position.clone().add(bullets[i].direction.clone().setLength(0.5)); 
 		let C = prey.pos.clone().center;
 		let R = prey.size;
 		
@@ -714,29 +717,6 @@ function ShootThrough(){
                 y = 0;
             }
 
-        /*for(let j = 0; j < pickables.length; j++){
-			//debugger;
-			 let bulletPreLocalPosition = pickables[j].worldToLocal(prePosition.clone()).clone();
-            let bulletNextLocalPosition = pickables[j].worldToLocal(nextPosition.clone()).clone();
-			
-			let ac = new THREE.Vector3();
-			ac.subVectors(C,bulletPreLocalPosition);
-			//console.log(ac);
-			let ab = new THREE.Vector3();
-			ab.subVectors(C,bulletNextLocalPosition);
-			//console.log(ab);
-			var length2;
-			let length = ac.clone().sub(ac.clone().projectOnVector(ab));
-			length2 = length.length();
-			console.log(length2);
-			
-			let dis = bullets[i].bullet.position.clone().sub(preditor.pos).length();
-			
-			if(dis < 8){
-                x = i;
-                y = j;
-            }
-        }*/
         bullets[i].bullet.position.copy(nextPosition);
     }
 	
@@ -773,7 +753,7 @@ function findMin(num1, num2) {
 function animate() {
 	
 	
-	let cameraPos = new THREE.Vector3(40, 15, 10);
+	let cameraPos = new THREE.Vector3(40, 15, 0);
 	soldier.mesh.children[0].localToWorld(cameraPos);
 	camera.position.copy(cameraPos);
 	let cameraLookAt = new THREE.Vector3(0, 2, 0);
@@ -787,7 +767,7 @@ function animate() {
 	ShootThrough();
 	
 	bullets.forEach(function(data){
-		data.bullet.position.add(data.direction.clone().setLength(10));
+		data.bullet.position.add(data.direction.clone().setLength(1));
     });
 	
 	let dt = clock.getDelta();

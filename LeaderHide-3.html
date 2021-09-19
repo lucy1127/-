@@ -212,18 +212,27 @@ class Agent extends Avatar {
 						nearObstacle().center.z
 				);
 				this.mesh.children[0].material.visible = false;
-				this.mesh.children[1].material.visible = false;
-				this.mesh.children[2].material.visible = true;
+				this.mesh.children[1].material.visible = true;
+				this.mesh.children[2].material.visible = false;
+				this.mesh.children[5].material.visible = true;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[7].material.visible = false;
 			}
 			if (this.fsm.state === "patrol") {
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = false;
 				this.mesh.children[2].material.visible = true;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[6].material.visible = true;
+				this.mesh.children[7].material.visible = false;
 			}
 			if (this.fsm.state === "attack") {
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
+				this.mesh.children[5].material.visible = true;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[7].material.visible = false;
 			}
 		}
 	}
@@ -434,6 +443,22 @@ function preditorMesh() {
 			side: THREE.DoubleSide
 		})
 	);
+	
+	var pointerHead2 = new THREE.Mesh(
+		new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
+		new THREE.MeshBasicMaterial({
+			color:'green',
+			side: THREE.DoubleSide,
+		})
+	);
+	var pointerHead3 = new THREE.Mesh(
+		new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
+		new THREE.MeshBasicMaterial({
+			color:"yellow",
+			side: THREE.DoubleSide,
+		})
+	);
+	
 	body.position.y = 3;
 	body2.position.y = 3;
 	body3.position.y = 3;
@@ -442,6 +467,10 @@ function preditorMesh() {
 	pointer.position.set(5, 2, 0);
 	pointerHead.rotation.z = Math.PI/2;
 	pointerHead.position.set(13,2,0);
+	pointerHead2.rotation.z = Math.PI/2;
+	pointerHead2.position.set(13,2,0);
+	pointerHead3.rotation.z = Math.PI/2;
+	pointerHead3.position.set(13,2,0);
 	
 
 	// '帥'蓋
@@ -454,7 +483,7 @@ function preditorMesh() {
 	circle.rotation.x = -Math.PI / 2;
 	iconZX.add(circle);
 
-	captain.add(body, body2,body3, iconZX, pointer,pointerHead);
+	captain.add(body, body2,body3, iconZX, pointer,pointerHead,pointerHead2,pointerHead3);
 	return captain;
 }
 function onDocumentMouseDown(event) {
