@@ -216,10 +216,13 @@ class Agent extends Avatar {
 
 			if (this.fsm.state === "patrol") {
 				super.setBrake(10);
+				
 				this.mesh.children[0].material.visible = true;
 				this.mesh.children[1].material.visible = false;
 			}
 			if (this.fsm.state === "attack") {
+				
+				
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 			}
@@ -283,7 +286,10 @@ class PreditorAgent extends Avatar {
 			}
 			if (this.fsm.state === "patrol") {
 				
-				
+				let dt = clock.getElapsedTime();
+				if(dt > 3){
+					preditor.fsm.shoot();
+				}
 				this.mesh.children[0].material.visible = true;
 				this.mesh.children[1].material.visible = false;
 				this.mesh.children[2].material.visible = false;
@@ -293,7 +299,9 @@ class PreditorAgent extends Avatar {
 			}
 			if (this.fsm.state === "attack") {
 				
+				clock.elapsedTime = 0;
 				super.setSeekTarget (soldier.pos.x,soldier.pos.y,soldier.pos.z);
+				
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
@@ -673,6 +681,7 @@ function checkRaycaster() {
 		preditor.fsm.depart();
 		
 	}
+	
 	let preditordistance = preditor.pos.distanceTo(soldier.pos);
 		if(preditorToTarget.dot(preditorDir) > 0 && preditordistance < 30){
 			preditor.fsm.shoot();
@@ -856,12 +865,13 @@ function animate() {
 	let dt = clock.getDelta();
 	let time = clock.getElapsedTime();
 	
+	/*
 	let cameraPos = new THREE.Vector3(40, 15, 0);
 	soldier.mesh.children[0].localToWorld(cameraPos);
 	camera.position.copy(cameraPos);
 	let cameraLookAt = new THREE.Vector3(0, 2, 0);
 	soldier.mesh.children[0].localToWorld(cameraLookAt);
-	camera.lookAt(cameraLookAt);
+	camera.lookAt(cameraLookAt);*/
 
 	keyboard.update();
 	SoldierMoving();
