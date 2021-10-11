@@ -293,7 +293,6 @@ class PreditorAgent extends Avatar {
 			}
 			if (this.fsm.state === "attack") {
 				
-				super.setSeekTarget (soldier.pos.x,soldier.pos.y,soldier.pos.z);
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
@@ -339,7 +338,7 @@ var keyboard = new KeyboardState();
 var raycaster = new THREE.Raycaster();
 var soldier,preditor,pickables = [],targets = [];
 var bullets = [],attack,attack2,attack3 = false;
-var fire = false,count = 0;
+var fire = false,count = 0,hide = false;
 var hudCamera,hudScene,zoom = false;
 var theta = 0,HH = 12;
 var pAngle, p1Angle;
@@ -416,7 +415,9 @@ function init() {
 	pickables = [plane];
 	
 	pickables.push(
-		preditor,
+		preditor.mesh.children[0],
+		preditor.mesh.children[1],
+		preditor.mesh.children[2],
 		scene.obstacles[0].mesh,
 		scene.obstacles[1].mesh,
 	);
@@ -601,6 +602,10 @@ function preditorMesh() {
 	body.position.y = 3;
 	body2.position.y = 3;
 	body3.position.y = 3;
+	body.name = "preditor";
+	body2.name = "preditor1";
+	body3.name = "preditor2";
+	
 	
 	pointer.rotation.z = Math.PI/2;
 	pointer.position.set(5, 2, 0);
@@ -657,9 +662,23 @@ function checkRaycaster() {
 	soldierRaycaster.set(soldier.pos, soldierDir);
 	preditorRaycaster.set(preditor.pos, preditorDir);
 	
-	//let intersects = soldierRaycaster.intersectObjects(pickables);
-	if (soldierTopreditor.dot(soldierDir) > 0) {
 	
+	let intersects = soldierRaycaster.intersectObjects(
+		pickables,
+		true
+	);
+	
+	if (intersects.length > 0) {
+		if (intersects[0].object.name == preditor.mesh.children[0].name || intersects[0].object.name == preditor.mesh.children[1].name || intersects[0].object.name == preditor.mesh.children[2].name) 
+			hide = false;
+		else 
+			hide = true;
+	}
+	
+	console.log(hide);
+
+	
+	if (soldierTopreditor.dot(soldierDir) > 0 && hide == false ) {
 		let p = findP(c);
 		findP(c);
 		findP1(c);
@@ -667,17 +686,20 @@ function checkRaycaster() {
 		preditor.fsm.beattacked();
 		preditor.setSeekTarget(30 * Math.cos((pAngle + p1Angle) / 2) +nearObstacle().center.x,0,30 * Math.sin((pAngle + p1Angle) / 2) +nearObstacle().center.z);
 		clock.elapsedTime = 0;
+		hide = true;
 	} 
 	else {
+		//if(hide == true && dt > 4)
+			preditor.fsm.depart();
+			hide = false;
 		
-		preditor.fsm.depart();
 		
 	}
-	let preditordistance = preditor.pos.distanceTo(soldier.pos);
+	/*let preditordistance = preditor.pos.distanceTo(soldier.pos);
 		if(preditorToTarget.dot(preditorDir) > 0 && preditordistance < 30){
 			preditor.fsm.shoot();
 		//clock.elapsedTime = 0;
-	}
+	}*/
 }
 function SoldierShooting() {
 	if(keyboard.pressed('space')){
@@ -856,12 +878,13 @@ function animate() {
 	let dt = clock.getDelta();
 	let time = clock.getElapsedTime();
 	
+	/*
 	let cameraPos = new THREE.Vector3(40, 15, 0);
 	soldier.mesh.children[0].localToWorld(cameraPos);
 	camera.position.copy(cameraPos);
 	let cameraLookAt = new THREE.Vector3(0, 2, 0);
 	soldier.mesh.children[0].localToWorld(cameraLookAt);
-	camera.lookAt(cameraLookAt);
+	camera.lookAt(cameraLookAt);*/
 
 	keyboard.update();
 	SoldierMoving();
