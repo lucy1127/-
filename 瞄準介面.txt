@@ -1,0 +1,45 @@
+var hudCamera,hudScene,zoom = false;
+//init 
+hudScene = new THREE.Scene();
+hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
+hudScene.add (makeCross());
+hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
+		
+
+function makeCross() {
+	let cross = new THREE.Group();
+
+	let points = [
+		new THREE.Vector3(-12, 0, 0),
+		new THREE.Vector3(12, 0, 0)
+	];
+
+	let geometry0 = new THREE.BufferGeometry();
+	geometry0.setFromPoints(points);
+	let line0 = new THREE.Line(
+		geometry0,
+		new THREE.LineBasicMaterial({ color: "black" })
+	);
+
+	points = [
+		new THREE.Vector3(0, -12, 0),
+		new THREE.Vector3(0, 12, 0)
+	];
+
+	let geometry1 = new THREE.BufferGeometry();
+	geometry1.setFromPoints(points);
+	let line1 = new THREE.Line(
+		geometry1,
+		new THREE.LineBasicMaterial({ color: "black" })
+	);
+
+	cross.add(line0, line1);
+	return cross;
+}
+// animate
+renderer.clear(true);
+renderer.render (scene, camera); 
+    if(zoom)
+        renderer.render (hudScene, hudCamera); 
+
+	requestAnimationFrame( animate ); 

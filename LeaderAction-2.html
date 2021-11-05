@@ -323,11 +323,13 @@ function preditorFSM() {
 		init: "patrol",
 		transitions: [
 			{ name: "beattacked", from: "patrol", to: "hide" },
+			{ name: "beattacked", from: "attack", to: "hide" },
 			{ name: "beattacked", from: "hide", to: "hide" },
 			{ name: "depart", from: "hide", to: "patrol" },
-			{ name: "depart", from: "attack", to: "hide" },
+			{ name: "depart", from: "attack", to: "patrol" },
 			{ name: "depart", from: "patrol", to: "patrol" },
 			{ name: "shoot", from: "patrol", to: "attack" },
+			{ name: "shoot", from: "hide", to: "attack" },
 			{ name: "shoot", from: "attack", to: "attack" },
 		],
 	});
@@ -339,7 +341,7 @@ var keyboard = new KeyboardState();
 var raycaster = new THREE.Raycaster();
 var soldier,preditor,pickables = [],targets = [];
 var bullets = [],attack,attack2,attack3 = false;
-var fire = false,count = 0,hide = false;
+var count = 0,hide = false;
 var hudCamera,hudScene,zoom = false;
 var theta = 0,HH = 12;
 var pAngle, p1Angle;
@@ -357,7 +359,8 @@ var moveforce = new THREE.Vector3();
 var angle,power;
 ///重生
 var rebir,rebir2;
-
+//隊長攻擊
+var fire,fire1;
 
 
 init();
@@ -659,8 +662,13 @@ function preditorMesh() {
 	circleback.position.y = 5;
 	circleback.rotation.x = -Math.PI / 2;
 	iconZX.add(circle,circle2,circle3,circleback);
+	
+	fire = new THREE.Object3D();
+	fire.position.set(12, 2, 0);
+	fire1 = new THREE.Object3D();
+	fire1.position.set(11, 2, 0);
 
-	captain.add(body, body2,body3, iconZX, pointer,pointerHead,pointerHead2,pointerHead3);
+	captain.add(body, body2,body3, iconZX, pointer,pointerHead,pointerHead2,pointerHead3,fire,fire1);
 	return captain;
 }
 function SoldierMoving(dt) {
@@ -738,20 +746,23 @@ function checkRaycaster() {
 	let dis = preditor.pos.distanceTo(soldier.pos);
 
 	if (preditorToTarget.dot(preditorDir) < 60 && preditorToTarget.dot(preditorDir) > 20 && dis < 70){
-		preditor.fsm.beattacked();
+		//preditor.fsm.beattacked();
+		preditor.fsm.shoot();
+		LeaderShooting();
 		clock.elapsedTime = 0;
 		hide = true;
 	} 
 	else {
 		if(hide == true && dt > 3){
 			preditor.fsm.depart();
+			//preditor.fsm.shoot();
 			hide = false;
 		}
 	}
 }
 function SoldierShooting() {
 	if(keyboard.down('space')){
-		fire = true;
+
 		count = count + 1;
 		if(count <= 3){
 			const geometry = new THREE.SphereGeometry( 2, 32, 32 );
@@ -780,6 +791,30 @@ function SoldierShooting() {
 		count = 0;
 		$('#Check').text ('Filled Bullet !!!');
 	}
+}
+function LeaderShooting() {
+		count = count + 1;
+		if(count <= 10){
+			const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+			const material = new THREE.MeshBasicMaterial({color : "yellow"});
+			let bullet = new THREE.Mesh( geometry, material );
+				fire.getWorldPosition(bullet.position);
+
+			let point = new THREE.Vector3();
+				fire1.getWorldPosition(point);
+
+			scene.add(bullet);
+
+			let direction = bullet.position.clone().sub(point).normalize(); //創造方向
+
+			bullets.push({
+				bullet: bullet,
+				direction: direction,
+			});
+		}
+		
+	
+	
 }
 function ShootThrough() {
 
