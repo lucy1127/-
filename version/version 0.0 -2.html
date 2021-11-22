@@ -1795,12 +1795,27 @@
 				return a.pos.distanceTo(b.position);
 			}
 
+	
 			function nearObstacle() {
 				var minDis = findDis(prey, scene.obstacles[0].mesh);
 				var minNum = 0;
 
 				for (var i = 1; i < scene.obstacles.length; i++) {
 					var dis = findDis(prey, scene.obstacles[i].mesh);
+					if (dis < minDis) {
+						minDis = dis;
+						minNum = i;
+					}
+				}
+				return scene.obstacles[minNum];
+			}
+			
+			function nearObstacleSold() {
+				var minDis = findDis(soldier, scene.obstacles[0].mesh);
+				var minNum = 0;
+
+				for (var i = 1; i < scene.obstacles.length; i++) {
+					var dis = findDis(soldier, scene.obstacles[i].mesh);
 					if (dis < minDis) {
 						minDis = dis;
 						minNum = i;
@@ -2069,19 +2084,22 @@
 			function cancel(){
 				scene.remove(rebir,rebir2);
 			}
+			
 			function SoldierMoving(dt) {
-		
+				
+				var dis = soldier.pos.distanceTo(nearObstacleSold().mesh.position);
+				
+				//console.log(soldier.mesh.children[1].position);
+				
 				if(movevel.length() > 0){
 					angle = 1.5*Math.PI + Math.atan2(movevel.x,movevel.z);
 				}
-
-				
 				if (keyboard.pressed("up")) {
 					power *= 1.2;
 				}
-
 				if (keyboard.pressed("down")) {
 					power /= 1.2;
+					
 				}
 				
 				power = Math.clamp (power, 0, 80.0);
@@ -2092,12 +2110,23 @@
 				}
 				if (keyboard.pressed("right")) {
 					angle_thrust -= 0.3;
+					
 				}
 				var thrust = new THREE.Vector3(1,0,0).multiplyScalar(power).applyAxisAngle (new THREE.Vector3(0,1,0), angle_thrust);
 				moveforce.copy (thrust);
 				moveforce.add(movevel.clone().multiplyScalar(-2))
 				movevel.add(moveforce.clone().multiplyScalar(dt));
 				movepos.add(movevel.clone().multiplyScalar(dt));
+				
+				for(var i= 0;i<scene.obstacles.length;i++){
+					
+					if(dis < nearObstacleSold().size + 8){
+						movepos.sub(movevel.clone().multiplyScalar(dt));
+					}
+					
+				}
+				
+				
 				
 				if(inHUD){
 					const soldierPos = soldier.mesh.getWorldPosition(new THREE.Vector3()).clone();
