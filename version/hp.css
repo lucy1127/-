@@ -1,0 +1,46 @@
+*{
+	padding: 0;
+	margin: 0;
+}
+.hpBar {
+  z-index: 10;
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 170px;
+  
+}
+
+
+
+.hpBar > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox {
+  width: 100px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox > .hp {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartCap {
+	z-index: 11;
+	position: absolute;
+	top: 105px;
+	left: 70px;
+	
+}
+
