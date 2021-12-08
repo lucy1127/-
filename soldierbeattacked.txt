@@ -1,0 +1,62 @@
+function SoldierBeAttacked() {
+
+	let x = -1,y = -1;
+
+	for (let i = 0; i < bullets2.length; i++) {
+		let prePosition = bullets2[i].bullet2.position;
+		let nextPosition = bullets2[i].bullet2.position
+			.clone()
+			.add(bullets2[i].direction.clone().setLength(5));
+		let C = soldier.pos.clone().center;
+		let R = soldier.size;
+
+		let dis = bullets2[i].bullet2.position
+			.clone()
+			.sub(soldier.pos)
+			.length();
+
+
+		if (dis < 8) {
+			x = i;
+			y = 0;
+		}
+		
+	
+		bullets2[i].bullet2.position.copy(nextPosition);
+	}
+
+	if (x !== -1 && y !== -1) {
+		
+		scene.remove(bullets2[x].bullet2);
+		bullets2.splice(x, 1);
+		
+		/////////////////////
+		HpS -= ATTACKS;
+		document.querySelector(".hpS").style.width = `${HpS}%`;
+						
+		if(HpS == 0){
+			lifeNumS--;
+			scene.remove(soldier.mesh);
+			
+		}
+				
+		if(lifeNumS == 3){
+						
+			document.getElementById("heartCapS").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+		}
+		else if(lifeNumS == 2){
+						
+			document.getElementById("heartCapS").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+		}
+		else if(lifeNumS == 1){
+						
+			document.getElementById("heartCapS").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+		}
+		else{
+			document.getElementById("heartCapS").innerHTML = 'You Die.';
+						
+		}
+					
+					
+		}
+}
