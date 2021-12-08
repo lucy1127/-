@@ -221,7 +221,7 @@ class Avatar {
 		let sign = 0;
 		if (
 			this.steerMode === "patrol" ||
-			this.steerMode === "SEEK"
+				this.steerMode === "SEEK"
 		)
 			sign = 1;
 		else if (this.steerMode === "hide") sign = -1;
@@ -315,9 +315,30 @@ class PreditorAgent extends Avatar {
 			
 			}
 			if (this.fsm.state === "attack") {
-				//let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
-					//super.setSeekTarget(pos.x,0,pos.z);
+				
+				let angle = Math.atan2(soldier.pos.z,soldier.pos.x);
+				angle -= Math.PI / 2;
+
+				this.mesh.children[3].rotation.y = angle;
+				console.log(angle)
+				
+				var finalOrientation = new THREE.Quaternion();
+				finalOrientation.setFromEuler(
+				 new THREE.Euler(0, angle, 0)
+				);
+				this.mesh.quaternion.rotateTowards(
+				 finalOrientation,
+				 0.05
+				);
+				
+				let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
+					super.setSeekTarget(pos.x,0,pos.z);
+		
+				
+	
 					
+	
+	
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = true;
 				this.mesh.children[2].material.visible = false;
@@ -418,6 +439,7 @@ var fire,fire1;
 var soldierAttack = false;
 
 
+
 init();
 animate();
 
@@ -482,17 +504,17 @@ function init() {
 	scene.obstacles.push(
 		new Obstacle(new THREE.Vector3(-90, 0, 0), 20)
 	);
-	scene.obstacles.push(
-		new Obstacle(new THREE.Vector3(-40, 0, 40), 20)
-	);
-	scene.obstacles.push(
-		new Obstacle(new THREE.Vector3(90, 0, 40), 20)
-	);
+	//scene.obstacles.push(
+	//	new Obstacle(new THREE.Vector3(-40, 0, 40), 20)
+	//);
+	//scene.obstacles.push(
+	//	new Obstacle(new THREE.Vector3(90, 0, 40), 20)
+	//);
 
 	scene.obstacles[0].mesh.name = "obstacles";
 	scene.obstacles[1].mesh.name = "obstacles";
-	scene.obstacles[2].mesh.name = "obstacles";
-	scene.obstacles[3].mesh.name = "obstacles";
+	//scene.obstacles[2].mesh.name = "obstacles";
+	//scene.obstacles[3].mesh.name = "obstacles";
 	
 	pickables.push(
 		preditor.mesh.children[0],
@@ -500,8 +522,8 @@ function init() {
 		preditor.mesh.children[2],
 		scene.obstacles[0].mesh,
 		scene.obstacles[1].mesh,
-		scene.obstacles[2].mesh,
-		scene.obstacles[3].mesh,
+		//scene.obstacles[2].mesh,
+		//scene.obstacles[3].mesh,
 	);
 	///////////////////////////////////////////////////////////////////////////////////
 	
@@ -750,6 +772,7 @@ function preditorMesh() {
 	return captain;
 }
 function SoldierMoving(dt) {
+
 	var dis = soldier.pos.distanceTo(nearObstacleSold().mesh.position);
 	
 	if(movevel.length() > 0){
@@ -780,13 +803,13 @@ function SoldierMoving(dt) {
 	movevel.add(moveforce.clone().multiplyScalar(dt));
 	movepos.add(movevel.clone().multiplyScalar(dt));
 	
+	
 	for(var i= 0;i<scene.obstacles.length;i++){
-		
 		if(dis < nearObstacleSold().size + 8){
 			movepos.sub(movevel.clone().multiplyScalar(dt));
 		}
-		
 	}
+
 
 	if(keyboard.down("shift")){
         zoom = true;
@@ -847,6 +870,7 @@ function checkRaycaster() {
 	}
 	if(preditorToTarget.dot(preditorDir) > 0 && soldierAttack ==  false && dis < 70){
 		preditor.fsm.shoot();
+		
 		LeaderShooting();
 	}
 	else {
@@ -1023,6 +1047,7 @@ function SoldierBeAttacked() {
 		if(HpS == 0){
 			lifeNumS--;
 			scene.remove(soldier.mesh);
+			
 		}
 				
 		if(lifeNumS == 3){
@@ -1166,6 +1191,11 @@ function preydown(){
 function preydown2(){
 	soldier.setSeekTarget(180,0,170);
 }
+function soldierAppear(){
+	soldier.pos.set(180,20,170);
+	scene.add(soldier.mesh);
+	HpS = 100;
+}
 
 function cancel(){
 	scene.remove(rebir,rebir2);
@@ -1176,14 +1206,6 @@ function animate() {
 	
 	let dt = clock.getDelta();
 	let time = clock.getElapsedTime();
-	
-	/*
-	let cameraPos = new THREE.Vector3(40, 15, 0);
-	soldier.mesh.children[0].localToWorld(cameraPos);
-	camera.position.copy(cameraPos);
-	let cameraLookAt = new THREE.Vector3(0, 2, 0);
-	soldier.mesh.children[0].localToWorld(cameraLookAt);
-	camera.lookAt(cameraLookAt);*/
 
 	keyboard.update();
 	SoldierMoving(dt);
@@ -1194,6 +1216,12 @@ function animate() {
 	SoldierShooting();
 	ShootThrough();
 	SoldierBeAttacked();
+	
+	//let dis = preditor.pos.distanceTo(soldier.pos);
+	//if( dis < 20){
+	//	let pos = soldier.mesh.localToWorld(new THREE.Vector3(10,0,10));
+	//	preditor.setHideTarget(pos.x,0,pos.z);
+	//}
 	
 
 	bullets.forEach(function (data) {
@@ -1208,15 +1236,6 @@ function animate() {
 		);
 	});
 	
-	
-	
-	// 讓「帥蓋」方位永遠固定
-	soldier.mesh.children[0].quaternion.copy(
-		soldier.mesh.quaternion.clone().invert()
-	);
-	preditor.mesh.children[3].quaternion.copy(
-		preditor.mesh.quaternion.clone().invert()
-	);
 	
 	if(Hp == 0){
 		if(lifeNum != 0){
@@ -1237,23 +1256,37 @@ function animate() {
 	
 	if(HpS == 0){
 		if(lifeNumS != 0){
-			HpS = 100;
+			//HpS = 100;
 			document.querySelector(".hpS").style.width = `${HpS}%`;		
 			
-			scene.add(rebir2);
+			
 			rebir2.position.set(200,20,170);
-						
-			soldier.pos = rebir2.position.clone();
-			scene.add(soldier.mesh);
-			soldier.setSeekTarget(180,20, 170);
+			scene.add(rebir2);
+				
+			//soldier.pos = rebir2.position.clone();
+			
+			setTimeout(soldierAppear,800);
 			setTimeout(preydown2,500);
 			setTimeout(cancel,3000);
 		}
 					
+	}else{
+		soldier.pos.copy(movepos);
+		soldier.mesh.rotation.y = angle;
 	}
 	
-	soldier.pos.copy(movepos);
-	soldier.mesh.rotation.y = angle;
+	
+	
+
+	
+	// 讓「帥蓋」方位永遠固定
+	soldier.mesh.children[0].quaternion.copy(
+		soldier.mesh.quaternion.clone().invert()
+	);
+	preditor.mesh.children[3].quaternion.copy(
+		preditor.mesh.quaternion.clone().invert()
+	);
+	
 	
 	renderer.clear(true);
     renderer.render (scene, camera); 

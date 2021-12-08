@@ -1,10 +1,9 @@
 
-
+var close = false;
 function life(){
-	
-	document.getElementById("manu").style.display = "block";
-}
-function lifeclose(){
-	
-	document.getElementById("manu").style.display = "none";
+	close = !close;
+	if(close == false)
+		document.getElementById("manu").style.display = "block";
+	else
+		document.getElementById("manu").style.display = "none";
 }
