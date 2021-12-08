@@ -546,8 +546,23 @@ class PreditorAgent extends Avatar {
 				this.mesh.children[7].material.visible = false;
 			}
 			if (this.fsm.state === "attack") {
+				let angle = Math.atan2(soldier.pos.z,soldier.pos.x);
+				angle -= Math.PI / 2 + Math.PI / 5 ;
+
+				this.mesh.children[3].rotation.y = angle;
+				console.log(angle)
+				
+				//var finalOrientation = new THREE.Quaternion();
+				//finalOrientation.setFromEuler(
+				// new THREE.Euler(0, angle, 0)
+				//);
+				//this.mesh.quaternion.rotateTowards(
+				// finalOrientation,
+				// 0.05
+				//);
+				
 				let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
-				super.setSeekTarget(pos.x,0,pos.z);
+					super.setSeekTarget(pos.x,0,pos.z);
 
 					this.mesh.children[0].material.visible = false;
 					this.mesh.children[1].material.visible = true;
@@ -705,11 +720,11 @@ class CapturerAgent extends Avatar {
 		if (this.stateSign) {
 			this.stateSign.position.copy(this.pos);
 			this.stateSign.position.y = 30;
-			this.stateSign.lookAt(
-				camera.position.x,
-				10,
-				camera.position.z
-			);
+			//this.stateSign.lookAt(
+				//camera.position.x,
+				//10,
+				//camera.position.z
+			//);
 
 			if (this.fsm.state === "snatch") {
 				this.stateSign.children[0].material.visible = true;
@@ -988,25 +1003,7 @@ class DefAgent extends Avatar {
 				}
 			}
 		}
-		//頭上的狀態
-		if (this.stateSign) {
-			this.stateSign.position.copy(this.pos);
-			this.stateSign.position.y = 10;
-			this.stateSign.lookAt(
-				camera.position.x,
-				15,
-				camera.position.z
-			);
-
-			if (this.fsm.state === "follow") {
-				this.stateSign.children[0].material.visible = true;
-				this.stateSign.children[1].material.visible = false;
-			}
-			if (this.fsm.state === "defense") {
-				this.stateSign.children[1].material.visible = true;
-				this.stateSign.children[0].material.visible = false;
-			}
-		}
+		
 	}
 }
 class SoldierAgent extends Avatar {
@@ -1022,14 +1019,14 @@ class SoldierAgent extends Avatar {
 
 	update(dt) {
 		
-		if (this.pos.z >= 185) {
-			this.pos.z = 185;
-		} else if (this.pos.z <= -185) {
-			this.pos.z = -185;
-		} else if (this.pos.x >= 185) {
-			this.pos.x = 185;
-		} else if (this.pos.x <= -185) {
-			this.pos.x = -185;
+		if (this.pos.z >= 195) {
+			this.pos.z = 195;
+		} else if (this.pos.z <= -195) {
+			this.pos.z = -195;
+		} else if (this.pos.x >= 195) {
+			this.pos.x = 195;
+		} else if (this.pos.x <= -195) {
+			this.pos.x = -195;
 		}
 		super.update(dt); 
 	}
@@ -1076,7 +1073,7 @@ class Obstacle {
 }
 
 //preditor
-var camera, scene, renderer, clock;
+var camera,cameraS, scene, renderer, clock,clockShoot;
 var preditor, prey, soldier;
 var pickables = [];
 var raycaster = new THREE.Raycaster();
@@ -1093,6 +1090,7 @@ var pickables2 = [];
 var front = false,
 	hidden = false;
 var count = 0;
+var countL = 0;
 var flag;
 var get = false,
 	insert = false,
@@ -1166,7 +1164,8 @@ var cameraHUD2,sceneHUD,cameraHUD1;
 //瞄準
 var hudCamera,hudScene,zoom = false;
 
-
+//控制士兵移動
+var  moveStop = false;
 
 init();
 animate();
@@ -1399,11 +1398,11 @@ function gasBox(){
 	box.add(box1,box2,box3,box4,box5);
 	
 	
-	box1.position.set(-200,15,190);
-	box2.position.set(-200,15,170);
-	box3.position.set(-200,15,150);
-	box4.position.set(-200,15,130);
-	box5.position.set(-200,15,110);
+	box1.position.set(-210,15,190);
+	box2.position.set(-210,15,170);
+	box3.position.set(-210,15,150);
+	box4.position.set(-210,15,130);
+	box5.position.set(-210,15,110);
 	
 	return box;
 	//scene.add(box);
@@ -1466,6 +1465,7 @@ function findNbhd(agents) {
 
 function init() {
 	clock = new THREE.Clock();
+	clockShoot = new THREE.Clock();
 	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera(
 		50,
@@ -1473,9 +1473,9 @@ function init() {
 		1,
 		1000
 	);
-	camera.position.z = 120;
-	camera.position.y = 100;
-			
+
+	
+	
 
 
 	renderer = new THREE.WebGLRenderer();
@@ -1496,7 +1496,7 @@ function init() {
 	restart = document.getElementById("restart");
 	
 
-	let controls = new OrbitControls(camera, renderer.domElement);
+	//let controls = new OrbitControls(camera, renderer.domElement);
 	document.body.appendChild(renderer.domElement);
 	window.addEventListener("resize", onWindowResize, false);
 	var gridXZ = new THREE.GridHelper(400, 40, "red", "white");
@@ -1580,13 +1580,13 @@ function init() {
 	box_b.position.set(0,0,-100);
 	box_c.position.set(0,0,-200);
 	
-	box_d.position.set(400,0,-300);
-	box_e.position.set(400,0,-200);
-	box_f.position.set(400,0,-100);
+	box_d.position.set(420,0,-300);
+	box_e.position.set(420,0,-200);
+	box_f.position.set(420,0,-100);
 	
-	box_g.position.set(-210,0,-400);
-	box_h.position.set(-110,0,-400);
-	box_i.position.set(-10,0,-400);
+	box_g.position.set(-210,0,-420);
+	box_h.position.set(-110,0,-420);
+	box_i.position.set(-10,0,-420);
 	
 	box_j.position.set(-285,0,0);
 	box_k.position.set(-185,0,0);
@@ -1672,6 +1672,7 @@ function init() {
 		"soldier"
 	);
 	
+
 
 	
 
@@ -2302,9 +2303,6 @@ function checkRaycaster() {
 	}
 	if(preditorToTarget.dot(preditorDir) > 0 && soldierAttack ==  false && dis < 70){
 		preditor.fsm.shoot();
-		let angle = Math.atan2(soldier.pos.z,soldier.pos.x);
-
-		preditor.mesh.children[3].rotation.y = -angle +  Math.PI / 4;
 		LeaderShooting();
 	}
 	else {
@@ -2315,31 +2313,34 @@ function checkRaycaster() {
 	}
 }
 function LeaderShooting() {
-	
-	let count = 0;
-		count++;	
-		if(count <= 1){
-			const geometry = new THREE.SphereGeometry( 2, 32, 32 );
-			const material = new THREE.MeshBasicMaterial({color : "yellow"});
-			let bullet2 = new THREE.Mesh( geometry, material );
-			fire.getWorldPosition(bullet2.position);
+		let timeL = clockShoot.getElapsedTime();
+		countL = countL + 1;
+		if(countL <2){
+				const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+				const material = new THREE.MeshBasicMaterial({color : "yellow"});
+				let bullet2 = new THREE.Mesh( geometry, material );
+					fire.getWorldPosition(bullet2.position);
 
-			let point = new THREE.Vector3();
-			fire1.getWorldPosition(point);
+				let point = new THREE.Vector3();
+					fire1.getWorldPosition(point);
 
-			scene.add(bullet2);
+				scene.add(bullet2);
 
-			let direction = bullet2.position.clone().sub(point).normalize(); //創造方向
+				let direction = bullet2.position.clone().sub(point).normalize(); //創造方向
 
-			bullets2.push({
-				bullet2: bullet2,
-				direction: direction,
+				bullets2.push({
+					bullet2: bullet2,
+					direction: direction,
 				});
-			count = 0;
+				clockShoot.elapsedTime = 0;
+				//countL = 0;
 		}
-	
+		if(timeL > 1 && countL > 1)
+			countL = 0;
+		
 		
 }
+
 function randomPosZX(min, max) {
 	let x = min + (max - min) * Math.random();
 	let z = min + (max - min) * Math.random();
@@ -2496,74 +2497,6 @@ function makeCross() {
 
 
 /////士兵射擊
-function SoldierBeAttacked() {
-
-	let x = -1,y = -1;
-
-	for (let i = 0; i < bullets2.length; i++) {
-		let prePosition = bullets2[i].bullet2.position;
-		let nextPosition = bullets2[i].bullet2.position
-			.clone()
-			.add(bullets2[i].direction.clone().setLength(5));
-		let C = soldier.pos.clone().center;
-		let R = soldier.size;
-
-		let dis = bullets2[i].bullet2.position
-			.clone()
-			.sub(soldier.pos)
-			.length();
-
-
-		if (dis < 8) {
-			x = i;
-			y = 0;
-		}
-		
-		bullets2[i].bullet2.position.copy(nextPosition);
-		if(bullets2[i].bullet2.position.x > 200 || bullets2[i].bullet2.position.x < -200||
-			bullets2[i].bullet2.position.z > 200 || bullets2[i].bullet2.position.z < -200){
-			
-			scene.remove(bullets2[i].bullet2);
-			bullets2.splice(i, 1);
-		}
-		
-	}
-
-	if (x !== -1 && y !== -1) {
-		
-		scene.remove(bullets2[x].bullet2);
-		bullets2.splice(x, 1);
-		
-		/////////////////////
-		HpS -= ATTACKS;
-		document.querySelector(".hp_Sol").style.width = `${HpS}%`;
-						
-		if(HpS == 0){
-			lifeNumS--;
-			scene.remove(soldier.mesh);
-			
-		}
-				
-		if(lifeNumS == 3){
-						
-			document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
-		}
-		else if(lifeNumS == 2){
-						
-			document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
-		}
-		else if(lifeNumS == 1){
-						
-			document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
-		}
-		else{
-			document.getElementById("heartSol").innerHTML = 'You Die.';
-						
-		}
-					
-					
-		}
-}
 function SoldierShooting(){
 	if(keyboard.down('ctrl')){
 		document.getElementById("bullet").innerHTML = '<img src="https://i.imgur.com/2WfaiMG.png" width = "40" height = "50"> <img src="https://i.imgur.com/2WfaiMG.png" width = "40" height = "50"> <img src="https://i.imgur.com/2WfaiMG.png" width = "40" height = "50">';
@@ -2615,7 +2548,7 @@ for (let i = 0; i < bullets.length; i++) {
 	let prePosition = bullets[i].bullet.position;
 	let nextPosition = bullets[i].bullet.position
 		.clone()
-		.add(bullets[i].direction.clone().setLength(5));
+		.add(bullets[i].direction.clone().setLength(1));
 	let C = preditor.pos.clone().center;
 	let R = preditor.size;
 
@@ -2626,9 +2559,7 @@ for (let i = 0; i < bullets.length; i++) {
 		
 	let c = new THREE.Mesh();
 	c.position.set(nearObstacle().mesh.position.x,0,nearObstacle().mesh.position.z);
-	
-	
-		
+
 	if (dis < 8) {
 		x = i;
 		y = 0;
@@ -2645,13 +2576,12 @@ for (let i = 0; i < bullets.length; i++) {
 
 
 	bullets[i].bullet.position.copy(nextPosition);
-	
-	if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
-			bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
-			
-			scene.remove(bullets[i].bullet);
-			bullets.splice(i, 1);
-	}
+    if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
+    bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
+
+        scene.remove(bullets[i].bullet);
+        bullets.splice(i, 1);
+    }
 }
 
 if (x !== -1 && y !== -1) {
@@ -2697,7 +2627,7 @@ function preyThrough() {
 		let prePosition = bullets[i].bullet.position;
 		let nextPosition = bullets[i].bullet.position
 			.clone()
-			.add(bullets[i].direction.clone().setLength(5));
+			.add(bullets[i].direction.clone().setLength(1));
 		let C = prey.pos.clone().center;
 		let R = prey.size;
 
@@ -2713,15 +2643,15 @@ function preyThrough() {
 			x = i;
 			y = 0;
 		}
-		
+
 
 		bullets[i].bullet.position.copy(nextPosition);
-		if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
-			bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
-			
-			scene.remove(bullets[i].bullet);
-			bullets.splice(i, 1);
-		}
+        if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
+        bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
+
+            scene.remove(bullets[i].bullet);
+            bullets.splice(i, 1);
+        }
 	}
 
 	if (x !== -1 && y !== -1) {
@@ -2766,7 +2696,7 @@ function defenseThrough() {
 		let prePosition = bullets[i].bullet.position;
 		let nextPosition = bullets[i].bullet.position
 			.clone()
-			.add(bullets[i].direction.clone().setLength(5));
+			.add(bullets[i].direction.clone().setLength(1));
 		let C = defense.pos.clone().center;
 		let R = defense.size;
 
@@ -2783,13 +2713,15 @@ function defenseThrough() {
 			y = 0;
 		}
 		
+
+
 		bullets[i].bullet.position.copy(nextPosition);
-		if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
-			bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
-			
-			scene.remove(bullets[i].bullet);
-			bullets.splice(i, 1);
-		}
+        if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
+        bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
+
+            scene.remove(bullets[i].bullet);
+            bullets.splice(i, 1);
+        }
 	}
 
 	if (x !== -1 && y !== -1) {
@@ -2834,7 +2766,7 @@ function defenseLThrough() {
 		let prePosition = bullets[i].bullet.position;
 		let nextPosition = bullets[i].bullet.position
 			.clone()
-			.add(bullets[i].direction.clone().setLength(5));
+			.add(bullets[i].direction.clone().setLength(1));
 		let C = defenseL.pos.clone().center;
 		let R = defenseL.size;
 
@@ -2850,15 +2782,16 @@ function defenseLThrough() {
 			x = i;
 			y = 0;
 		}
-	
+		
+
 
 		bullets[i].bullet.position.copy(nextPosition);
-		if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
-			bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
-			
-			scene.remove(bullets[i].bullet);
-			bullets.splice(i, 1);
-		}
+        if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
+        bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
+
+            scene.remove(bullets[i].bullet);
+            bullets.splice(i, 1);
+        }
 	}
 
 	if (x !== -1 && y !== -1) {
@@ -2898,7 +2831,7 @@ function defenseRThrough() {
 		let prePosition = bullets[i].bullet.position;
 		let nextPosition = bullets[i].bullet.position
 			.clone()
-			.add(bullets[i].direction.clone().setLength(5));
+			.add(bullets[i].direction.clone().setLength(1));
 		let C = defenseR.pos.clone().center;
 		let R = defenseR.size;
 
@@ -2916,14 +2849,14 @@ function defenseRThrough() {
 		}
 		
 
-		bullets[i].bullet.position.copy(nextPosition);
-		if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
-			bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
-			
-			scene.remove(bullets[i].bullet);
-			bullets.splice(i, 1);
-		}
 
+		bullets[i].bullet.position.copy(nextPosition);
+        if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
+        bullets[i].bullet.position.z > 200 || bullets[i].bullet.position.z < -200){
+
+            scene.remove(bullets[i].bullet);
+            bullets.splice(i, 1);
+        }
 	}
 
 	if (x !== -1 && y !== -1) {
@@ -2981,6 +2914,75 @@ function soldierdown(){
 	soldier.setSeekTarget(170,0, 170);
 	
 }
+  
+
+function SoldierBeAttacked() {
+
+     let x = -1,y = -1;
+
+    for (let i = 0; i < bullets2.length; i++) {
+        let prePosition = bullets2[i].bullet2.position;
+        let nextPosition = bullets2[i].bullet2.position
+        .clone()
+        .add(bullets2[i].direction.clone().setLength(5));
+        let C = soldier.pos.clone().center;
+        let R = soldier.size;
+
+        let dis = bullets2[i].bullet2.position
+        .clone()
+        .sub(soldier.pos)
+        .length();
+
+
+        if (dis < 8) {
+            x = i;
+            y = 0;
+        }
+
+
+        bullets2[i].bullet2.position.copy(nextPosition);
+        if(bullets2[i].bullet2.position.x > 200 || bullets2[i].bullet2.position.x < -200||
+        bullets2[i].bullet2.position.z > 200 || bullets2[i].bullet2.position.z < -200){
+
+            scene.remove(bullets2[i].bullet2);
+            bullets2.splice(i, 1);
+        }
+    }
+     if (x !== -1 && y !== -1) {
+
+      scene.remove(bullets2[x].bullet2);
+      bullets2.splice(x, 1);
+
+      /////////////////////
+      HpS -= ATTACKS;
+      document.querySelector(".hp_Sol").style.width = `${HpS}%`;
+
+      if(HpS == 0){
+       lifeNumS--;
+       scene.remove(soldier.mesh);
+
+      }
+
+      if(lifeNumS == 3){
+
+       document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+      }
+      else if(lifeNumS == 2){
+
+       document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+      }
+      else if(lifeNumS == 1){
+
+       document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
+      }
+      else{
+       document.getElementById("heartSol").innerHTML = 'You Die.';
+
+      }
+
+
+      }
+}   
 
 function cancel(){
 	scene.remove(rebir);
@@ -3006,6 +3008,7 @@ function SoldierMoving(dt) {
 		
 	}
 	
+	
 	power = Math.clamp (power, 0, 80.0);
 	
 	var angle_thrust = angle;
@@ -3016,12 +3019,23 @@ function SoldierMoving(dt) {
 		angle_thrust -= 0.8;
 		
 	}
+
 	var thrust = new THREE.Vector3(1,0,0).multiplyScalar(power).applyAxisAngle (new THREE.Vector3(0,1,0), angle_thrust);
 	moveforce.copy (thrust);
 	moveforce.add(movevel.clone().multiplyScalar(-2))
 	movevel.add(moveforce.clone().multiplyScalar(dt));
-	movepos.add(movevel.clone().multiplyScalar(dt));
-	
+	/*if(movepos.x > 195 || movepos.x < -195||  movepos.z < -195 || movepos.z > 195){
+		movepos.sub(movevel.clone().multiplyScalar(dt));
+	}else{
+		movepos.add(movevel.clone().multiplyScalar(dt));
+	}*/
+	if(movepos.x < 195 || movepos.x > -195||  movepos.z > -195 || movepos.z < 195){
+		movepos.add(movevel.clone().multiplyScalar(dt));
+	}
+	if(movepos.x > 200 && movepos.z > 200 || movepos.x < -200 && movepos.z <-200 || movepos.x < -200 && movepos.z > 200 || movepos.x > 200 && movepos.z < -200)
+		movepos.sub(movevel.clone().multiplyScalar(dt));
+		
+
 	for(var i= 0;i<scene.obstacles.length;i++){
 		
 		if(dis < nearObstacleSold().size + 8){
@@ -3029,14 +3043,13 @@ function SoldierMoving(dt) {
 		}
 		
 	}
-	
 	if(inHUD){
-		const soldierPos = soldier.mesh.getWorldPosition(new THREE.Vector3()).clone();
-		const cameraPos = camera.getWorldPosition(new THREE.Vector3()).clone();
+		let soldierPos = soldier.mesh.localToWorld(new THREE.Vector3()).clone();
+		let cameraPosZ = camera.localToWorld(new THREE.Vector3()).clone();
 		
-		const dir = cameraPos.clone().sub(soldierPos);
+		let dir = cameraPosZ.clone().sub(soldierPos);
 		dir.y = 0;
-		camera.lookAt(cameraPos.clone().add(dir));
+		camera.lookAt(cameraPosZ.clone().add(dir));
 	
 	}
 	if(keyboard.down("shift")){
@@ -3044,8 +3057,8 @@ function SoldierMoving(dt) {
 		inHUD = true;
 
 		soldier.mesh.add(camera);
-		camera.position.copy(new THREE.Vector3(21,2,0));
-		//camera.lookAt(soldier.pos.clone().add(new THREE.Vector3(20,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), angle_thrust)).add(new THREE.Vector3(0,2,0)));
+		camera.position.copy(new THREE.Vector3(0,40,-100));
+		//camera.lookAt(soldier.pos.clone().add(new THREE.Vector3(10,20,0).applyAxisAngle(new THREE.Vector3(0,1,0), angle_thrust)).add(new THREE.Vector3(0,2,0)));
 	}
 	else if(keyboard.up("shift")){
 		inHUD = false;
@@ -3119,6 +3132,13 @@ function restartgame() {
 	second = 0;
 	already = 1;
 
+    moveStop = false;
+    movepos = new THREE.Vector3(175,0,175);
+    movevel = new THREE.Vector3();
+    moveforce = new THREE.Vector3();
+    power = 5.0;
+    angle = 0.0;
+    
 	var x = Math.random() * 380 - 190;
 	flag.position.set(x, 8, -x);
 
@@ -3129,6 +3149,8 @@ function restartgame() {
 	
 	
 }
+
+
 function animate() {
     
 	animate.distance = animate.distance ? animate.distance : 0;
@@ -3138,21 +3160,27 @@ function animate() {
 	time = clock.getElapsedTime();
 	
 	keyboard.update();
+	
+	soldier.mesh.children[0].rotation.y = -Math.PI/2;
+	let cameraPos = new THREE.Vector3(10,40,5);
+	soldier.mesh.children[1].localToWorld (cameraPos);
+	camera.position.copy (cameraPos);
+	let cameraLookAt = new THREE.Vector3(10,30,2);
+	soldier.mesh.children[1].localToWorld (cameraLookAt);
+	camera.lookAt (cameraLookAt);
+
 	preditor.update(dt);
 	prey.update(dt, time);
 	checkRaycaster();
 	
-	
 	SoldierShooting();
-	SoldierBeAttacked();
 	ShootThrough();
 	preyThrough();
 	defenseThrough();
 	defenseLThrough();
 	defenseRThrough();
 	soldier.update(dt);
-	
-
+    SoldierBeAttacked();
 
 	//findNbhd(agents);
 	agents.forEach(function (agent) {
@@ -3165,14 +3193,12 @@ function animate() {
         preditor.setHideTarget(preditor.pos.x,0,preditor.pos.y);
     }
 	
-	bullets.forEach(function(data){
-		data.bullet.position.add(data.direction.clone().setLength(1));
-	});
 	bullets2.forEach(function (data) {
 		data.bullet2.position.add(
 			data.direction.clone().setLength(1)
 		);
 	});
+
 	
 	//hiddenOrNot();
 	prey.findTarget(flag);
@@ -3219,7 +3245,6 @@ function animate() {
 			//get = false;
 			attack = true;
 			prey.fsm.attacked();
-            console.log('ji')
 			var p = findP(c);
 			findHidePlace(c, p);
 		} else if (second > 8 || attack === false) {
@@ -3253,7 +3278,9 @@ function animate() {
 	
 	animate.distance = dst;
 	
-	
+	bullets.forEach(function(data){
+		data.bullet.position.add(data.direction.clone().setLength(1));
+	});
 	rebir.rotation.z += 0.05;
 	rebir2.rotation.z += 0.05;
 	
@@ -3268,26 +3295,20 @@ function animate() {
 	trees3.forEach (function(t) {t.lookAt (cameraRoot)});
 	trees4.forEach (function(t) {t.lookAt (cameraRoot)});
 //////////////soldierMove
-	SoldierMoving(dt);
-	soldier.pos.copy(movepos);
-	soldier.mesh.rotation.y = angle;
-	
+    if(moveStop == false){
+        SoldierMoving(dt);
+        soldier.pos.copy(movepos);
+        soldier.mesh.rotation.y = angle;
+    }
 	//玩家視角(帥)
 	
 
-	//soldier.mesh.children[0].rotation.y = -Math.PI/2;
-	//let cameraPos = new THREE.Vector3(-50,30,0);
-	//soldier.mesh.children[1].localToWorld (cameraPos);
-	//camera.position.copy (cameraPos);
-	//let cameraLookAt = new THREE.Vector3(0,10,0);
-	//soldier.mesh.children[1].localToWorld (cameraLookAt);
-	//camera.lookAt (cameraLookAt);
 	
 	
 	// 讓「車蓋」方位永遠固定
-	soldier.mesh.children[0].quaternion.copy(
-		soldier.mesh.quaternion.clone().invert()
-	);
+	//soldier.mesh.children[0].quaternion.copy(
+		//soldier.mesh.quaternion.clone().invert()
+	//);
 	prey.mesh.children[0].quaternion.copy(
 		prey.mesh.quaternion.clone().invert()
 	);
@@ -3378,6 +3399,7 @@ function animate() {
 		prey.findTarget(flag);
 		//scene.add(rebir,rebir2);
 		setTimeout(cancel,3000);
+        setTimeout(cancel2,3000);
 	}
 	if (keyboard.down("enter") && state === -1) {
 		state = 0;
@@ -3397,6 +3419,8 @@ function animate() {
 		restart.innerHTML = "Press enter to restart.";
 		state = -2;
 		console.log(state);
+        soldier.setBrake(10);
+        moveStop = true;
 	}
 	
 	if (keyboard.down("enter") && state === -2) {
@@ -3411,7 +3435,7 @@ function animate() {
 			document.querySelector(".hp_Cap").style.width = `${Hp}%`;
 			
 			get = false;
-		
+            insert = false;
 			prey.fsm.findFlag();
 			scene.add(rebir);
 			rebir.position.set(-175,20,-170);
@@ -3511,6 +3535,14 @@ function animate() {
 			soldier.setSeekTarget(180,20, 170);
 			setTimeout(soldierdown,500);
 			setTimeout(cancel2,3000);
+            
+            
+            moveStop = false;
+            movepos = new THREE.Vector3(175,0,175);
+            movevel = new THREE.Vector3();
+            moveforce = new THREE.Vector3();
+            power = 5.0;
+            angle = 0.0;
 		}
 		else{
 			state = -2;
@@ -3548,6 +3580,7 @@ function render() {
 		//renderer.setViewport(0, 0, WW/2, HH);
 		//renderer.setScissor(0, 0, WW/2, HH);
 		renderer.render(scene, camera);
+		
 		if(zoom)
 			renderer.render (hudScene, hudCamera); 
 		renderer.setViewport(WW / 25, HH/2  , WW / 4, HH / 2);
