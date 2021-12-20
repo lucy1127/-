@@ -267,7 +267,7 @@ class PreditorAgent extends Avatar {
 			$("#preditorState").text(this.fsm.state);
 
 			if (this.fsm.state === "hide") {
-				var obstacle = new THREE.Vector3(nearObstacle().center.x,0,nearObstacle().center.z);
+				/*var obstacle = new THREE.Vector3(nearObstacle().center.x,0,nearObstacle().center.z);
 				var x =35 * Math.cos((pAngle + p1Angle) / 2) +obstacle.x;
 				var z =35 * Math.sin((pAngle + p1Angle) / 2) +obstacle.z;
 				
@@ -280,7 +280,7 @@ class PreditorAgent extends Avatar {
 
 						this.mesh.rotation.y = angleNow;
 					}
-								
+								*/
 				this.mesh.children[0].material.visible = false;
 				this.mesh.children[1].material.visible = false;
 				this.mesh.children[2].material.visible = true;
@@ -322,17 +322,10 @@ class PreditorAgent extends Avatar {
 				this.mesh.children[3].rotation.y = angle;
 				console.log(angle)
 				
-				var finalOrientation = new THREE.Quaternion();
-				finalOrientation.setFromEuler(
-				 new THREE.Euler(0, angle, 0)
-				);
-				this.mesh.quaternion.rotateTowards(
-				 finalOrientation,
-				 0.05
-				);
+			
 				
-				let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
-					super.setSeekTarget(pos.x,0,pos.z);
+				//let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
+					//super.setSeekTarget(pos.x,0,pos.z);
 		
 				
 	
@@ -859,14 +852,14 @@ function checkRaycaster() {
 	let dis = preditor.pos.distanceTo(soldier.pos);
 
 	if (preditorToTarget.dot(preditorDir) < 60 && preditorToTarget.dot(preditorDir) > 20 && dis < 70 && soldierAttack ==  true){
-		let p = findP(c);
-		findP(c);
-		findP1(c);
-		findHidePlace(c, p);
+		//let p = findP(c);
+		//findP(c);
+		//findP1(c);
+		//findHidePlace(c, p);
 		preditor.fsm.beattacked();
-		preditor.setSeekTarget(30 * Math.cos((pAngle + p1Angle) / 2) +nearObstacle().center.x,0,30 * Math.sin((pAngle + p1Angle) / 2) +nearObstacle().center.z);
-		clock.elapsedTime = 0;
-		hide = true;
+		//preditor.setSeekTarget(30 * Math.cos((pAngle + p1Angle) / 2) +nearObstacle().center.x,0,30 * Math.sin((pAngle + p1Angle) / 2) +nearObstacle().center.z);
+		//clock.elapsedTime = 0;
+		//hide = true;
 	}
 	if(preditorToTarget.dot(preditorDir) > 0 && soldierAttack ==  false && dis < 70){
 		preditor.fsm.shoot();
@@ -961,12 +954,12 @@ function ShootThrough() {
 		}
 		
 		if(dis < 15){
-			let p = findP(c);
-			findP(c);
-			findP1(c);
-			findHidePlace(c, p);
+			//let p = findP(c);
+			//findP(c);
+			//findP1(c);
+			//findHidePlace(c, p);
 			preditor.fsm.beattacked();
-			preditor.setSeekTarget(30 * Math.cos((pAngle + p1Angle) / 2) +nearObstacle().center.x,0,30 * Math.sin((pAngle + p1Angle) / 2) +nearObstacle().center.z);
+			//preditor.setSeekTarget(30 * Math.cos((pAngle + p1Angle) / 2) +nearObstacle().center.x,0,30 * Math.sin((pAngle + p1Angle) / 2) +nearObstacle().center.z);
 		}
 
 	
