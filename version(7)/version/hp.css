@@ -1,0 +1,245 @@
+*{
+	padding: 0;
+	margin: 0;
+}
+.hpBar_Cap {
+  z-index: 10;
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 170px;
+  
+}
+
+
+
+.hpBar_Cap > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox_Cap {
+  width: 100px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_Cap > .hp_Cap {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartCap {
+	z-index: 11;
+	position: absolute;
+	top: 105px;
+	left: 70px;
+	
+}
+
+.hpBar_Led {
+  z-index: 10;
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 170px;
+  
+}
+
+
+
+.hpBar_Led > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox_Led {
+  width: 100px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_Led > .hp_Led {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartLed {
+	z-index: 11;
+	position: absolute;
+	top: 105px;
+	left: 270px;
+	
+}
+
+.hpBar_DefL {
+  z-index: 10;
+  position: absolute;
+  bottom: 40px;
+  left: 10px;
+  width: 130px;
+  
+}
+
+
+
+.hpBar_DefL > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox_DefL {
+  width: 80px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_DefL > .hp_DefL {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartDefL {
+	z-index: 11;
+	position: absolute;
+	bottom: 20px;
+	left: 45px;
+	
+}
+
+.hpBar_Def {
+  z-index: 10;
+  position: absolute;
+  bottom: 40px;
+  left: 143px;
+  width: 130px;
+  
+}
+
+
+
+.hpBar_Def > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox_Def {
+  width: 80px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_Def > .hp_Def {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartDef {
+	z-index: 11;
+	position: absolute;
+	bottom: 20px;
+	left: 180px;
+	
+}
+
+.hpBar_DefR {
+  z-index: 10;
+  position: absolute;
+  bottom: 40px;
+  right: 5px;
+  width: 130px;
+  
+}
+
+
+
+.hpBar_DefR > h2 {
+  color: #000;
+  text-shadow: 1px 1px 0px #fff;
+  float: left;
+  
+}
+
+.hpBox_DefR {
+  width: 80px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_DefR > .hp_DefR {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartDefR {
+	z-index: 11;
+	position: absolute;
+	bottom: 20px;
+	left: 310px;
+	
+}
+.hpBar_Sol {
+  z-index: 10;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 170px;
+  
+}
+
+.hpBox_Sol {
+  width: 100px;
+  height: 15px;
+  border: 4px solid #000;
+  float: right;
+  background-color: #fff;
+  z-index: 99;
+}
+
+.hpBox_Sol > .hp_Sol {
+  width: 100%;
+  height: 100%;
+  background-color: #fea14a;
+  z-index: 11;
+}
+
+#heartSol {
+	z-index: 11;
+	position: absolute;
+	top: 40px;
+	right: 10px;
+	
+}
