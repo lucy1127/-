@@ -3752,6 +3752,16 @@ function animate() {
 		defense.fsm.noattack();
 		defenseL.fsm.noattack();
 	}
+	if(prey.fsm.state === "endGame"){
+	defenseR.fsm.attack();
+	defense.fsm.attack();
+	defenseL.fsm.attack();
+	}
+	else{
+	defenseR.fsm.noattack();
+	defense.fsm.noattack();
+	defenseL.fsm.noattack();
+	}
 	
 	/*
 	renderer.clear(true);
