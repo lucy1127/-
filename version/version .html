@@ -180,13 +180,24 @@
 				font-weight:bold;
 			}
 			
-			
+            #flagtake {
+                position: absolute;
+                top: 10px;
+                font-size: 40px;
+                width: 100%;
+                padding: 5px;
+                text-align: center;
+                color: #ff0000;
+                font-weight:bold;
+                display: none;
+            }
 		</style>
 		<link rel="stylesheet" href="hp.css">
 		
 	</head>
 	<body>
 		<div id="heading">
+		    <div id = "flagtake">Flag be taken.</div>
 			<div id = "introduction">
 			
 				<img src = "picture/introduction.png" width = "650" height = "550"/>
@@ -423,23 +434,6 @@ import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitCo
 
 class Avatar {
 	constructor(pos, mesh) {
-		/*this.pos = pos.clone();
-		this.vel = new THREE.Vector3();
-		this.force = new THREE.Vector3();
-		this.MAXSPEED = 50;
-		this.ARRIVAL_R = 150;
-
-		this.size = 35;
-		this.angle = 0; // for orientable agent
-		this.mesh = mesh;
-		scene.add(mesh);
-
-		this.target = null;
-		this.steermode = "";
-		this.BRAKING = 0; // no brake*/
-		
-		
-		
 		this.pos = pos.clone();
 		this.vel = new THREE.Vector3();
 		this.force = new THREE.Vector3();
@@ -704,7 +698,7 @@ class PreditorAgent extends Avatar {
 				this.mesh.children[7].material.visible = false;
 			}
 			if (this.fsm.state === "attack") {
-				let angle = Math.atan2(soldier.pos.z,soldier.pos.x);
+				let angle = Math.atan2(soldier.pos.x,0,soldier.pos.z);
 				angle -= Math.PI / 2 + Math.PI / 5 ;
 
 				this.mesh.children[3].rotation.y = angle;
@@ -760,7 +754,7 @@ class CapturerAgent extends Avatar {
 					Math.abs(flag.position.x - this.pos.x) < 5 &&
 					Math.abs(flag.position.z - this.pos.z) < 5
 				) {
-					get = true;
+					getFlag = true;
 					insert = true;
 				}
 			}
@@ -824,13 +818,15 @@ class CapturerAgent extends Avatar {
 			}
 
 			if (this.fsm.state === "hide") {
+                if(getFlag === true){
+                    flag.position.set(this.pos.x, 10, this.pos.z);
+                }
 				insert = false;
 				var obstacle = new THREE.Vector3(
 					nearObstacle().center.x,
 					0,
 					nearObstacle().center.z
 				);
-				var finalOrientation = new THREE.Quaternion();
 				var x =
 					35 * Math.cos((pAngle + p1Angle) / 2) +
 					obstacle.x;
@@ -854,7 +850,7 @@ class CapturerAgent extends Avatar {
 				}
 			}
 			if (this.fsm.state === "touchDown") {
-				if (get === true) {
+				if (getFlag === true) {
 					flag.position.set(this.pos.x, 10, this.pos.z);
 				}
 				if (insert === true) {
@@ -1227,7 +1223,7 @@ class Obstacle {
 		texture1.wrapS = THREE.RepeatWrapping;
 		texture1.wrapT = THREE.RepeatWrapping;
 		texture1.repeat.set(2, 1);
-		var texMat1 = new THREE.MeshBasicMaterial({
+		var texMat1 = new THREE.MeshPhongMaterial({
 			map: texture1,
 			side: THREE.DoubleSide,
 		});
@@ -1248,7 +1244,7 @@ class Obstacle {
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
 		texture.repeat.set(5, 1);
-		var texMat = new THREE.MeshBasicMaterial({
+		var texMat = new THREE.MeshPhongMaterial({
 			map: texture,
 			side: THREE.DoubleSide,
 		});
@@ -1283,7 +1279,7 @@ var front = false,
 var count = 0;
 var countL = 0;
 var flag;
-var get = false,
+var getFlag = false,
 	insert = false,
 	endCapturer = false,
 	attack = false;
@@ -1354,7 +1350,8 @@ var moveforce = new THREE.Vector3();
 var angle,power;
 
 //小視窗
-var cameraHUD2,sceneHUD,cameraHUD1;
+var sceneRTT, cameraTop, renderTarget;
+var cameraMap;
 
 //瞄準
 var hudCamera,hudScene,zoom = false;
@@ -1401,11 +1398,8 @@ function preyFSM() {
 			{ name: "attacked", from: "touchDown", to: "hide" },
 			{ name: "attacked", from: "hide", to: "hide" },
 			{ name: "takeFlag", from: "snatch", to: "touchDown" },
-			{
-				name: "takeFlag",
-				from: "touchDown",
-				to: "touchDown",
-			},
+			{ name: "takeFlag", from: "touchDown", to: "touchDown"},
+            { name: "takeFlag", from: "hide", to: "touchDown"},
 			{ name: "defense", from: "endGame", to: "endGame" },
 			{ name: "defense", from: "snatch", to: "endGame" },
 			{ name: "defense", from: "search", to: "endGame" },
@@ -1431,36 +1425,6 @@ function garrisonFSM() {
 	return fsm;
 }
 
-//小視窗
-function initHUD() {
-	  // sceneHUD: a simple line boundary
-	  sceneHUD = new THREE.Scene();
-	  cameraHUD1 = new THREE.OrthographicCamera(-10.5, 10.5, 10.5, -10.5, -50, 50);
-	  cameraHUD1.position.z = 20;  // for border
-	  
-	  //小視窗
-	cameraHUD2 = new THREE.OrthographicCamera(-220,220,220,-220,-420,420);
-	cameraHUD2.position.set (0,30,0)
-	cameraHUD2.up.set (0,0,-1)   // for top view
-	cameraHUD2.lookAt (new THREE.Vector3())
-
-	  let points = [];
-	  points.push (
-		new THREE.Vector3(-10, -10, 0),
-		new THREE.Vector3(10, -10, 0),
-		new THREE.Vector3(10, 10, 0),
-		new THREE.Vector3(-10, 10, 0),
-		new THREE.Vector3(-10, -10, 0));
-	  var lineGeometry = new THREE.BufferGeometry().setFromPoints (points);
-		
-	  var line = new THREE.Line(lineGeometry,
-		new THREE.LineBasicMaterial({
-		  color: 0xff0000
-		}));
-	  sceneHUD.add(line);
-  
-}
-
 function back(){
 
 	let loader = new THREE.TextureLoader();
@@ -1470,7 +1434,7 @@ function back(){
 		);
 	
 	let wall = new THREE.Mesh(new THREE.PlaneGeometry(600,300),
-				new THREE.MeshBasicMaterial({
+				new THREE.MeshPhongMaterial({
 					map: tex
 					//side: THREE.DoubleSide
 				}));
@@ -1481,7 +1445,7 @@ function back(){
 		
 	let gt_og = new THREE.TextureLoader().load( 'https://i.imgur.com/hyZYHl2.jpg' );
 	let gg_og = new THREE.PlaneBufferGeometry( 600, 100 );
-	let gm_og = new THREE.MeshBasicMaterial( { color: 0xffffff, map: gt_og ,side: THREE.DoubleSide} );
+	let gm_og = new THREE.MeshPhongMaterial( { color: 0xffffff, map: gt_og ,side: THREE.DoubleSide} );
 
 	let out_ground = new THREE.Mesh( gg_og, gm_og );
 	
@@ -1506,7 +1470,7 @@ function tree(){
 	loader.crossOrigin = '';
 	var texture = loader.load('https://i.imgur.com/omX5Drl.png');
 	
-	var texMat = new THREE.MeshBasicMaterial({
+	var texMat = new THREE.MeshPhongMaterial({
 				map: texture,
 				//transparent: true
 				alphaTest: 0.5
@@ -1550,7 +1514,7 @@ function gasBox(){
 	texture1.wrapS = THREE.RepeatWrapping;
 	texture1.wrapT = THREE.RepeatWrapping;
 	texture1.repeat.set(2, 1);
-	/*var texMat1 = new THREE.MeshBasicMaterial({
+	/*var texMat1 = new THREE.MeshPhongMaterial({
 		map: texture1,
 		side: THREE.DoubleSide,
 	});
@@ -1569,7 +1533,7 @@ function gasBox(){
 	//texture.wrapT = THREE.RepeatWrapping;
 	//texture.repeat.set(5, 1);
 
-	var texMat = new THREE.MeshBasicMaterial({
+	var texMat = new THREE.MeshPhongMaterial({
 			map: texture,
 			side: THREE.DoubleSide,
 			alphaTest: 0.5,
@@ -1823,19 +1787,15 @@ function init() {
 		1000
 	);
 
-	//camera.position.z = 120;
-	//camera.position.y = 100;
-	
-
 
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0x888888);
 	renderer.autoClear = false;
 
-	let light = new THREE.PointLight(0xffffff);
-	light.position.set(100, 300, 200);
-	scene.add(light);
+	//let light = new THREE.PointLight(0xffffff);
+	//light.position.set(100, 300, 200);
+	//scene.add(light);
 	
 	
 	//介面
@@ -1849,27 +1809,51 @@ function init() {
 	//let controls = new OrbitControls(camera, renderer.domElement);
 	document.body.appendChild(renderer.domElement);
 	window.addEventListener("resize", onWindowResize, false);
-	var gridXZ = new THREE.GridHelper(400, 40, "red", "white");
-	//scene.add(gridXZ);
-
-	/*document.addEventListener(
-		"pointerdown",
-		onDocumentMouseDown,
-		false
-	);*/
-	
 	//////////////////////////////////////////////////////////////////////////////////////////
-	
+	// topview camera (for scene)
+	cameraTop = new THREE.OrthographicCamera (-200,200,200,-200,-10,1000);
+	cameraTop.position.set (0,50,0);
+	cameraTop.up.set (0,0,-1);
+	cameraTop.lookAt (0,0,0);
+  
+	// scene for minimap
+	// (a plane with RTT-ed topview texture)
+  
+	sceneRTT = new THREE.Scene();
+	renderTarget = new THREE.WebGLRenderTarget(
+		1024, 1024, {
+		minFilter: THREE.LinearFilter,
+		magFilter: THREE.NearestFilter,
+		format: THREE.RGBFormat
+		}
+	);
+	// map size: 400x400
+	let mapPlane = new THREE.PlaneBufferGeometry(400, 400); 
+	let minimap = new THREE.Mesh(mapPlane,
+		new THREE.MeshBasicMaterial({
+		map: renderTarget.texture,
+		side: THREE.DoubleSide,
+		transparent: true,
+		opacity: 0.8,
+		//depthWrite: false,
+		//depthTest: false,    
+    }));
+	sceneRTT.add(minimap);
+
+	// camera for RTT-ed minimap
+	cameraMap = new THREE.OrthographicCamera (-200,200,200,-200,-10,100);
+
+
 	
 	//  GROUND
 
 	var gt = new THREE.TextureLoader().load( 'https://i.imgur.com/hyZYHl2.jpg' );
 	var gg = new THREE.PlaneBufferGeometry( 400, 400 );
-	var gm = new THREE.MeshBasicMaterial( { color: 0xffffff, map: gt ,side: THREE.DoubleSide} );
+	var gm = new THREE.MeshPhongMaterial( { color: 0xffffff, map: gt ,side: THREE.DoubleSide} );
 
 	var ground = new THREE.Mesh( gg, gm );
 	ground.rotation.x = - Math.PI / 2;
-	ground.material.map.repeat.set( 60, 60 );
+	ground.material.map.repeat.set( 20, 20 );
 	ground.material.map.wrapS = THREE.RepeatWrapping;
 	ground.material.map.wrapT = THREE.RepeatWrapping;
 	// note that because the ground does not cast a shadow, .castShadow is left false
@@ -1880,7 +1864,7 @@ function init() {
 	let grd = new THREE.Group();
 	let groundE = new THREE.Mesh(
 		new THREE.PlaneGeometry(50, 50, 32),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: 0xff0000,
 			transparent: true,
 			opacity: 0.3,
@@ -1931,8 +1915,8 @@ function init() {
 	rebir2.rotation.y = Math.PI/2;
 	
 	scene.add(rebir,rebir2);
-	rebir.position.set(-200,25,-170);
-	rebir2.position.set(200,25,170)
+	rebir.position.set(-195,25,-170);
+	rebir2.position.set(195,25,170)
 	
 	tree();
 	
@@ -1957,7 +1941,7 @@ function init() {
 	
 	flagPoint = new THREE.Mesh(
 		new THREE.CircleGeometry(6, 32),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "red",
 			side: THREE.DoubleSide,
 		})
@@ -1975,9 +1959,10 @@ function init() {
 		flagPoint1
 	);
 	//////////////////////////////////////////////////////////////////////////////////////////
+	//plane
 	let plane = new THREE.Mesh(
 		new THREE.PlaneGeometry(400, 400),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			transparent: true,
 			opacity: 0.5,
 			visible: true,
@@ -1988,8 +1973,6 @@ function init() {
 	plane.rotation.x = -Math.PI / 2;
 	pickables = [plane];
 	
-	//pickables.push(prey);
-	///////////////////////////////////////////////////////////////////////////////////////////
 	preditor = new PreditorAgent(
 		new THREE.Vector3(-175, 0, -175),
 		preditorMesh(),
@@ -2050,7 +2033,7 @@ function init() {
 	let tex = loader.load("https://i.imgur.com/3YSMhL0.png");
 	flag = new THREE.Mesh(
 		new THREE.CircleGeometry(15, 20),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: tex,
 			transparent: true,
 			side: THREE.DoubleSide,
@@ -2099,7 +2082,7 @@ function init() {
 
 	nextTargetCircle = new THREE.Mesh(
 		new THREE.CircleGeometry(3, 20),
-		new THREE.MeshBasicMaterial({ color: "black" })
+		new THREE.MeshPhongMaterial({ color: "black" })
 	);
 	scene.add(nextTargetCircle);
 	nextTargetCircle.rotation.x = -Math.PI / 2;
@@ -2110,11 +2093,9 @@ function init() {
 	angle = 0.0;
 	
 	hudScene = new THREE.Scene();
-	hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'black'})));
+	hudScene.add (new THREE.Mesh (new THREE.RingGeometry(12,15,30), new THREE.MeshBasicMaterial({color:'grey'})));
 	hudScene.add (makeCross());
 	hudCamera = new THREE.OrthographicCamera (-20,20,20,-20,-10,10);
-	
-	initHUD();
 	
 }
 function DefMesh() {
@@ -2128,11 +2109,11 @@ function DefMesh() {
 	iconBody.repeat.set(5, 1);
 
 	var def = new THREE.Group();
-	var mat = new THREE.MeshNormalMaterial();
+	var mat = new THREE.MeshPhongMaterial();
 
 	var body = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({ 
+		new THREE.MeshPhongMaterial({ 
 			color: "lightgreen",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2140,7 +2121,7 @@ function DefMesh() {
 	);
 	var body2 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({ 
+		new THREE.MeshPhongMaterial({ 
 			color: "red",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2160,7 +2141,7 @@ function DefMesh() {
 	let iconZX = new THREE.Group();
 	let circle = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 32),
-		new THREE.MeshBasicMaterial({ map: icon })
+		new THREE.MeshPhongMaterial({ map: icon })
 	);
 	circle.position.y = 4;
 	circle.rotation.x = -Math.PI / 2;
@@ -2180,7 +2161,7 @@ function soldierMesh() {
 	iconBody.repeat.set(5, 1);
 	var body = new THREE.Mesh(
         new THREE.CylinderGeometry(8, 8, 4, 32, 1, true),
-        new THREE.MeshBasicMaterial({
+        new THREE.MeshPhongMaterial({
             map: iconBody,
             side: THREE.DoubleSide,
         })
@@ -2193,14 +2174,14 @@ function soldierMesh() {
 
 	var pointer = new THREE.Mesh(
         new THREE.CylinderGeometry(1.5, 1.5, 15, 32),
-        new THREE.MeshBasicMaterial({
+        new THREE.MeshPhongMaterial({
         map: mat,
         side: THREE.DoubleSide,
         })
 	);
 	var pointerHead = new THREE.Mesh(
         new THREE.CylinderGeometry(1.7, 1.7, 2, 32, 1, true),
-        new THREE.MeshBasicMaterial({
+        new THREE.MeshPhongMaterial({
         map: pointerHeadTexture,
         side: THREE.DoubleSide,
         })
@@ -2216,7 +2197,7 @@ function soldierMesh() {
 	let iconZX = new THREE.Group();
 	let circle = new THREE.Mesh(
 	new THREE.CircleGeometry(8, 128),
-	new THREE.MeshBasicMaterial({ map: icon })
+	new THREE.MeshPhongMaterial({ map: icon })
 	);
 	circle.position.y = 4;
 	circle.rotation.x = -Math.PI / 2;
@@ -2226,8 +2207,12 @@ function soldierMesh() {
 	solattack.position.set(13,2,0);
 	solattack2 = new THREE.Object3D();
 	solattack2.position.set(12,2,0);
+	
+	let light = new THREE.PointLight(0xffffff,1,400,2);
+	light.position.set(0, 100, 0);
+	//scene.add(light);
 
-	soldier.add(iconZX, pointer,pointerHead,body,solattack,solattack2);
+	soldier.add(iconZX, pointer,pointerHead,body,solattack,solattack2,light);
 	return soldier;
 }
 function preditorMesh() {
@@ -2246,7 +2231,7 @@ function preditorMesh() {
 	var captain = new THREE.Group();
 	var body = new THREE.Mesh(
 	new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:"green",
 	map: iconBody,
 	side: THREE.DoubleSide,
@@ -2254,7 +2239,7 @@ function preditorMesh() {
 	);
 	var body2 = new THREE.Mesh(
 	new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:"red",
 	map: iconBody,
 	side: THREE.DoubleSide,
@@ -2262,7 +2247,7 @@ function preditorMesh() {
 	);
 	var body3 = new THREE.Mesh(
 	new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:"yellow",
 	map: iconBody,
 	side: THREE.DoubleSide,
@@ -2270,14 +2255,14 @@ function preditorMesh() {
 	);
 	var pointer = new THREE.Mesh(
 	new THREE.CylinderGeometry(1.5, 1.5,15,32),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	map: mat,
 	side: THREE.DoubleSide
 	})
 	);
 	var pointerHead = new THREE.Mesh(
 	new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:"red",
 	side: THREE.DoubleSide
 	})
@@ -2285,14 +2270,14 @@ function preditorMesh() {
 
 	var pointerHead2 = new THREE.Mesh(
 	new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:'green',
 	side: THREE.DoubleSide,
 	})
 	);
 	var pointerHead3 = new THREE.Mesh(
 	new THREE.CylinderGeometry(1.7,1.7,2,32,1,true),
-	new THREE.MeshBasicMaterial({
+	new THREE.MeshPhongMaterial({
 	color:"yellow",
 	side: THREE.DoubleSide,
 	})
@@ -2320,19 +2305,19 @@ function preditorMesh() {
 	let iconZX = new THREE.Group();
 	let circle = new THREE.Mesh(
 	new THREE.CircleGeometry(8, 32),
-	new THREE.MeshBasicMaterial({ color:'green', map: icon ,side: THREE.DoubleSide})
+	new THREE.MeshPhongMaterial({ color:'green', map: icon ,side: THREE.DoubleSide})
 	);
 	let circle2 = new THREE.Mesh(
 	new THREE.CircleGeometry(8, 32),
-	new THREE.MeshBasicMaterial({ color:'yellow', map: icon,side: THREE.DoubleSide })
+	new THREE.MeshPhongMaterial({ color:'yellow', map: icon,side: THREE.DoubleSide })
 	);
 	let circle3 = new THREE.Mesh(
 	new THREE.CircleGeometry(8, 32),
-	new THREE.MeshBasicMaterial({ color:'red', map: icon,side: THREE.DoubleSide})
+	new THREE.MeshPhongMaterial({ color:'red', map: icon,side: THREE.DoubleSide})
 	);
 	let circleback = new THREE.Mesh(
 	new THREE.CircleGeometry(8, 32),
-	new THREE.MeshBasicMaterial({ color:'grey', map: icon,side: THREE.DoubleSide})
+	new THREE.MeshPhongMaterial({ color:'grey', map: icon,side: THREE.DoubleSide})
 	);
 
 	circle.position.y = 5;
@@ -2364,10 +2349,10 @@ function capturerMesh() {
 	iconBody.repeat.set(5, 1);
 
 	var capturer = new THREE.Group();
-	var mat = new THREE.MeshNormalMaterial();
+	var mat = new THREE.MeshPhongMaterial();
 	var body = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "lightgreen",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2375,7 +2360,7 @@ function capturerMesh() {
 	);
 	var body2 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "yellow",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2383,7 +2368,7 @@ function capturerMesh() {
 	);
 	var body3 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "blue",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2391,7 +2376,7 @@ function capturerMesh() {
 	);
 	var body4 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "red",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2399,7 +2384,7 @@ function capturerMesh() {
 	);
 	var body5 = new THREE.Mesh(
 		new THREE.CylinderGeometry(8, 8, 4, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "green",
 			map: iconBody,
 			side: THREE.DoubleSide,
@@ -2412,35 +2397,35 @@ function capturerMesh() {
 	);
 	var pbody = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.6, 1.6, 1.5, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "lightgreen",
 			side: THREE.DoubleSide,
 		})
 	);
 	var pbody2 = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.6, 1.6, 1.5, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "yellow",
 			side: THREE.DoubleSide,
 		})
 	);
 	var pbody3 = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.6, 1.6, 1.5, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "blue",
 			side: THREE.DoubleSide,
 		})
 	);
 	var pbody4 = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.6, 1.6, 1.5, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "red",
 			side: THREE.DoubleSide,
 		})
 	);
 	var pbody5 = new THREE.Mesh(
 		new THREE.CylinderGeometry(1.6, 1.6, 1.5, 20, 1, true),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "0x1ad450",
 			side: THREE.DoubleSide,
 		})
@@ -2448,7 +2433,7 @@ function capturerMesh() {
 
 	var searchCircle = new THREE.Mesh(
 		new THREE.CircleGeometry(75, 32),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			color: "pink",
 			transparent: true,
 			opacity: 0.4,
@@ -2480,7 +2465,7 @@ function capturerMesh() {
 	let iconZX = new THREE.Group();
 	let circle = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 8),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: icon,
 			color: "lightgreen",
 			side: THREE.DoubleSide,
@@ -2490,7 +2475,7 @@ function capturerMesh() {
 	circle.rotation.x = -Math.PI / 2;
 	let circle2 = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 8),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: icon,
 			color: "yellow",
 			side: THREE.DoubleSide,
@@ -2500,7 +2485,7 @@ function capturerMesh() {
 	circle2.rotation.x = -Math.PI / 2;
 	let circle3 = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 8),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: icon,
 			color: "blue",
 			side: THREE.DoubleSide,
@@ -2510,7 +2495,7 @@ function capturerMesh() {
 	circle3.rotation.x = -Math.PI / 2;
 	let circle4 = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 8),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: icon,
 			color: 0x1ad450,
 			side: THREE.DoubleSide,
@@ -2520,7 +2505,7 @@ function capturerMesh() {
 	circle4.rotation.x = -Math.PI / 2;
     let circle5 = new THREE.Mesh(
 		new THREE.CircleGeometry(8, 8),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: icon,
 			color: "red",
 			side: THREE.DoubleSide,
@@ -2557,7 +2542,7 @@ function stateSign() {
 	);
 	let snatchMesh = new THREE.Mesh(
 		new THREE.PlaneGeometry(35, 30),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: snatchMap,
 			transparent: true,
 			alphaTest: 0,
@@ -2566,7 +2551,7 @@ function stateSign() {
 	);
 	let searchMesh = new THREE.Mesh(
 		new THREE.PlaneGeometry(35, 20),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: searchMap,
 			transparent: true,
 			alphaTest: 0,
@@ -2575,7 +2560,7 @@ function stateSign() {
 	);
 	let hideMesh = new THREE.Mesh(
 		new THREE.PlaneGeometry(35, 30),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: hideMap,
 			transparent: true,
 			alphaTest: 0,
@@ -2584,7 +2569,7 @@ function stateSign() {
 	);
 	let touchDownMesh = new THREE.Mesh(
 		new THREE.PlaneGeometry(50, 30),
-		new THREE.MeshBasicMaterial({
+		new THREE.MeshPhongMaterial({
 			map: touchDownMap,
 			transparent: true,
 			alphaTest: 0,
@@ -2614,14 +2599,7 @@ function onDocumentMouseDown(event) {
 		flag.position.y = 8;
 	}
 }
-function sight(dst) {
-	if (dst < 150 && front === true) {
-		prey.fsm.seeFlag();
-	}
-	if (dst >= 150 && front === false) {
-		prey.fsm.findFlag();
-	}
-}
+
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
@@ -2676,7 +2654,7 @@ function LeaderShooting() {
 		countL = countL + 1;
 		if(countL <2){
 				const geometry = new THREE.SphereGeometry( 2, 32, 32 );
-				const material = new THREE.MeshBasicMaterial({color : "yellow"});
+				const material = new THREE.MeshPhongMaterial({color : "yellow"});
 				let bullet2 = new THREE.Mesh( geometry, material );
 					fire.getWorldPosition(bullet2.position);
 
@@ -2757,6 +2735,7 @@ function findP(c) {
 	circleL.position.set(p.x, 0, p.z);*/
 	return p;
 }
+
 function findP1(c) {
 	var axis = new THREE.Vector3(0, 1, 0);
 	var cp1 = new THREE.Vector3();
@@ -2835,7 +2814,7 @@ function makeCross() {
 	geometry0.setFromPoints(points);
 	let line0 = new THREE.Line(
 		geometry0,
-		new THREE.LineBasicMaterial({ color: "black" })
+		new THREE.LineBasicMaterial({ color: "grey" })
 	);
 
 	points = [
@@ -2847,7 +2826,7 @@ function makeCross() {
 	geometry1.setFromPoints(points);
 	let line1 = new THREE.Line(
 		geometry1,
-		new THREE.LineBasicMaterial({ color: "black" })
+		new THREE.LineBasicMaterial({ color: "grey" })
 	);
 
 	cross.add(line0, line1);
@@ -2868,7 +2847,7 @@ function SoldierShooting(){
 		bulletNum += 1;
 		if(count < 2){
 			const geometry = new THREE.SphereGeometry( 2, 32, 32 );
-			const material = new THREE.MeshBasicMaterial({color : "yellow"});
+			const material = new THREE.MeshPhongMaterial({color : "yellow"});
 			let bullet = new THREE.Mesh( geometry, material );
 				solattack.getWorldPosition(bullet.position);
 
@@ -2963,15 +2942,15 @@ if (x !== -1 && y !== -1) {
 		document.getElementById("heartLed").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 	}
 	else if(lifeNumL == 2){
-					
+		preditor.MAXSPEED = 40;
 		document.getElementById("heartLed").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 	}
 	else if(lifeNumL == 1){
-					
+		preditor.MAXSPEED = 35;
 		document.getElementById("heartLed").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 	}
 	else{
-		document.getElementById("heartLed").innerHTML = 'You Die.';
+		document.getElementById("heartLed").innerHTML = '';
 					
 	}
 				
@@ -2981,7 +2960,7 @@ if (x !== -1 && y !== -1) {
 function preyThrough() {
 
 	let x = -1,y = -1;
-
+    
 	for (let i = 0; i < bullets.length; i++) {
 		let prePosition = bullets[i].bullet.position;
 		let nextPosition = bullets[i].bullet.position
@@ -3003,8 +2982,7 @@ function preyThrough() {
 			y = 0;
             shooted = true;
 		}
-        else    
-            shooted = false;
+        
 
 		bullets[i].bullet.position.copy(nextPosition);
         if(bullets[i].bullet.position.x > 200 || bullets[i].bullet.position.x < -200||
@@ -3034,15 +3012,15 @@ function preyThrough() {
 			document.getElementById("heartCap").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 		}
 		else if(lifeNum == 2){
-						
+			prey.MAXSPEED = 40;
 			document.getElementById("heartCap").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 		}
 		else if(lifeNum == 1){
-						
+			prey.MAXSPEED = 35;	
 			document.getElementById("heartCap").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
 		}
 		else{
-			document.getElementById("heartCap").innerHTML = 'You die.';
+			document.getElementById("heartCap").innerHTML = '';
 			
 						
 		}
@@ -3104,15 +3082,15 @@ function defenseThrough() {
 			document.getElementById("heartDef").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumD == 2){
-						
+			defense.MAXSPEED = 40;
 			document.getElementById("heartDef").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumD == 1){
-						
+			defense.MAXSPEED = 35;	
 			document.getElementById("heartDef").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else{
-			document.getElementById("heartDef").innerHTML = 'You Die.';
+			document.getElementById("heartDef").innerHTML = '';
 						
 		}
 					
@@ -3174,13 +3152,17 @@ function defenseLThrough() {
 			document.getElementById("heartDefL").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumDL == 2){
-						
+			defenseL.MAXSPEED = 40;
 			document.getElementById("heartDefL").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumDL == 1){
-						
+			defenseL.MAXSPEED = 35;	
 			document.getElementById("heartDefL").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
-		}			
+		}
+		else{
+			document.getElementById("heartDefL").innerHTML = '';
+						
+		}
 					
 	}
 }
@@ -3239,11 +3221,11 @@ function defenseRThrough() {
 			document.getElementById("heartDefR").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumDR == 2){
-						
+			defenseR.MAXSPEED = 40;
 			document.getElementById("heartDefR").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">  <img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}
 		else if(lifeNumDR == 1){
-						
+			defenseR.MAXSPEED = 35;	
 			document.getElementById("heartDefR").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "30" height = "30">';
 		}	
 		else{
@@ -3329,20 +3311,20 @@ function SoldierBeAttacked() {
        document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
       }
       else if(lifeNumS == 2){
-
+		soldier.MAXSPEED = 40;
        document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
       }
       else if(lifeNumS == 1){
-
+		soldier.MAXSPEED = 35;
        document.getElementById("heartSol").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
       }
       else{
-       document.getElementById("heartSol").innerHTML = 'You Die.';
+       document.getElementById("heartSol").innerHTML = '';
 
       }
 
 
-      }
+    }
 }   
 
 function cancel(){
@@ -3351,9 +3333,26 @@ function cancel(){
 function cancel2(){
 	scene.remove(rebir2);
 }
+
 function solShow(){
 	scene.add(soldier.mesh);
 }
+function predShow(){
+	scene.add(preditor.mesh);
+}
+function preyShow(){
+	scene.add(prey.mesh);
+}
+function defShow(){
+	scene.add(defense.mesh);
+}
+function defLShow(){
+	scene.add(defenseL.mesh);
+}
+function defRShow(){
+	scene.add(defenseR.mesh);
+}
+
 
 function SoldierMoving(dt) {
 	
@@ -3417,9 +3416,9 @@ function SoldierMoving(dt) {
 	let disDefL = soldier.pos.distanceTo(defenseL.pos);
 	let disDefR = soldier.pos.distanceTo(defenseR.pos);
 	
-    if(disPrey <= 17 || disPred <= 17 || disDef <= 17 && disDefL <= 17 && disDefR <= 17){
+    if(disPrey <= 17 || disPred <= 17 || disDef <= 17 ||disDefL <= 17|| disDefR <= 17){
         movepos.sub(movevel.clone().multiplyScalar(dt));
-    }else if(disPrey > 17 || disPred > 17 || disDef > 17 && disDefL > 17 && disDefR > 17){
+    }else if(disPrey > 17 || disPred > 17 || disDef > 17 ||disDefL > 17|| disDefR > 17){
 		movepos.add(movevel.clone().multiplyScalar(dt));
 	}
 
@@ -3437,8 +3436,8 @@ function SoldierMoving(dt) {
 		zoom = true;
 		inHUD = true;
 	
-		//camera.position.copy(new THREE.Vector3(0,0,0));
-		soldier.mesh.children[2].localToWorld(camera);
+		//camera.position.copy(new THREE.Vector3(20,0,5));
+		soldier.mesh.localToWorld(camera);
 		//camera.lookAt(soldier.pos.clone().add(new THREE.Vector3(21,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), angle_thrust)).add(new THREE.Vector3(0,2,0)));
 	}
 	else if(keyboard.up("shift")){
@@ -3502,7 +3501,7 @@ function restartgame() {
 	front = false;
 	hidden = false;
 	count = 0;
-	get = false;
+	getFlag = false;
 	attack = false;
 	can = false;
 	seeWarrior = false,seeCapturer = false;
@@ -3538,7 +3537,6 @@ function animate() {
 	time = clock.getElapsedTime();
 	
 	keyboard.update();
-	
 	
 	soldier.mesh.children[0].rotation.y = -Math.PI/2;
 	let cameraPos = new THREE.Vector3(10,40,1);
@@ -3594,12 +3592,11 @@ function animate() {
 	endPlace.position.set(175, 0, 175);
 	var endPlaceSol = new THREE.Mesh();
 	endPlaceSol.position.set(-175, 0, -175);
-	
-	
+
 	if (
 		Math.abs(soldier.pos.x - flag.position.x) < 5 &&
 		Math.abs(soldier.pos.z - flag.position.z) < 5 &&
-		get === false &&
+		getFlag === false &&
 		insert === false &&
 		endCapturer === false
 	) {
@@ -3608,37 +3605,43 @@ function animate() {
 	} else {
 		soldierFlag = false;
 	}
-
+    console.log(getFlag,insert)
 	if (soldierFlag === false) {
         var hiding;
         if(disToSoldier < 75 && seeWarrior === true && seeCapturer === true)
             hiding = true;
         else
             hiding = false;
-
-		if (
+        
+		if(
 			hiding ===  true ||
             shooted === true
 		) {
 			already -= 1;
 
-			//get = false;
 			attack = true;
 			prey.fsm.attacked();
 			var p = findP(c);
 			findHidePlace(c, p);
+            if(second > 8){
+                shooted = false;
+            }
 		} else if (second > 8 || attack === false) {
 			already = 1;
-
 			attack = false;
-			if (get === true || insert === true) {
+			if (getFlag === true || insert === true) {
+                document.getElementById("flagtake").style.display = " block ";
+                insert = true;
 				prey.fsm.takeFlag();
-			} else if (dst < 75 /*&& front === true*/) {
+			} else if (dst < 150 /*&& front === true*/) {
 				prey.fsm.seeFlag();
 			} else {
-				/*if (dst >= 200 && front === false && get === false) */
+				/*if (dst >= 200 && front === false && getFlag === false) */
 				prey.fsm.findFlag();
 			}
+            if(getFlag === false || insert === false){
+                document.getElementById("flagtake").style.display = " none ";
+            }
 		}
 	}
 	if (soldierFlag === true) {
@@ -3650,7 +3653,7 @@ function animate() {
 		Math.abs(prey.pos.x - endPlace.position.x) < 5 &&
 		Math.abs(prey.pos.z - endPlace.position.z) < 5 &&
 		insert === true &&
-		get === true
+		getFlag === true
 	) {
 		endCapturer = true;
 		prey.setBrake(10);
@@ -3817,12 +3820,12 @@ function animate() {
 			Hp = 100;
 			document.querySelector(".hp_Cap").style.width = `${Hp}%`;
 			
-			get = false;
+			getFlag = false;
             insert = false;
 			prey.fsm.findFlag();
 			scene.add(rebir);
 			rebir.position.set(-175,20,-170);
-			scene.add(prey.mesh);
+			setTimeout(preyShow,1500);
 			
 			prey.pos = rebir.position.clone();
 			setTimeout(cancel,3000);
@@ -3848,7 +3851,7 @@ function animate() {
 			
 			scene.add(rebir);
 			rebir.position.set(-200,20,-170);
-			scene.add(preditor.mesh);
+			setTimeout(predShow,1500);
 						
 			preditor.pos = rebir.position.clone();
 			preditor.setSeekTarget(-180,20, -170);
@@ -3864,7 +3867,7 @@ function animate() {
 			
 			scene.add(rebir);
 			rebir.position.set(-200,20,-170);
-			scene.add(defense.mesh);
+			setTimeout(defShow,1500);
 						
 			defense.pos = rebir.position.clone();
 			defense.setSeekTarget(-180,20, -170);
@@ -3880,7 +3883,7 @@ function animate() {
 			
 			scene.add(rebir);
 			rebir.position.set(-200,20,-170);
-			scene.add(defenseL.mesh);
+			setTimeout(defLShow,1500);
 						
 			defenseL.pos = rebir.position.clone();
 			defenseL.setSeekTarget(-180,20, -170);
@@ -3896,7 +3899,7 @@ function animate() {
 			
 			scene.add(rebir);
 			rebir.position.set(-200,20,-170);
-			scene.add(defenseR.mesh);
+			setTimeout(defRShow,1500);
 						
 			defenseR.pos = rebir.position.clone();
 			defenseR.setSeekTarget(-180,20, -170);
@@ -3943,43 +3946,43 @@ function animate() {
 	}
 	render();
 	requestAnimationFrame( animate ); 
-	//renderer.render (scene, camera); 
-	
 	
 }
 
 function render() {
-
+	
 		var WW = window.innerWidth;
 		var HH = window.innerHeight;
-		renderer.setScissorTest( true );
-
-		renderer.setViewport(0, 0, WW, HH);
-		camera.aspect = WW / HH;
-		camera.updateProjectionMatrix();
 		
-		renderer.setScissor(0, 0, WW, HH);
-		//renderer.clear();
 		
-		//renderer.setViewport(0, 0, WW/2, HH);
-		//renderer.setScissor(0, 0, WW/2, HH);
+		//小地圖透明
+		// render scene to texture (topview)
+		renderer.setRenderTarget (renderTarget);
+		renderer.setClearColor(0xffffff);
+		renderer.clear();
+		
+		renderer.render(scene, cameraTop);
+		// ready to render to screen  
+		renderer.setRenderTarget(null);  
+		renderer.setClearColor(0x888888);
+		renderer.clear();
+		
+		// render scene
+		renderer.setViewport (0,0,WW, HH);
 		renderer.render(scene, camera);
 		
 		if(zoom)
 			renderer.render (hudScene, hudCamera); 
+		
+		
+		// render minimap  
+		// must render AFTER scene
+		// (depthTest = false)
+		//let mapSize = ww/3;
 		renderer.setViewport(WW / 25, HH/2  , WW / 4, HH / 2);
-		renderer.setScissor(WW / 25, HH/2  , WW / 4, HH / 2);
+		renderer.render (sceneRTT, cameraMap);
 		
-		renderer.clear(true);  // important!
-		
-		renderer.render(sceneHUD, cameraHUD1);		// border
-		renderer.render(scene, cameraHUD2);
-		
-		
-
-		renderer.setScissorTest( false );
 }
-
 
 </script>
 	</body>

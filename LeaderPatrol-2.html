@@ -178,75 +178,457 @@ class Avatar {
    }
 
 }
-class Agent extends Avatar {
-   constructor (pos, mesh, name = '', fsm) {
-      super (pos, mesh);
-	  this.fsm = fsm;
-	  this.stateSign = null;
-   }
-   update (dt) {
-   	
-		super.update (dt);  // calling avatar update
+class PreditorAgent extends Avatar {
+	constructor(pos, mesh, name = "", fsm) {
+		super(pos, mesh);
+		this.fsm = fsm;
+		this.stateSign = null;
+	}
+	update(dt) {
+		super.update(dt); // calling avatar update
 
-		// agent related ...  
+		// agent related ...
 		// how to make the brain not so hyper-active
 		if (this.fsm) {
-			$('#preditorState').text (this.fsm.state);
+			$("#preditorState").text(this.fsm.state);
+
+			if (this.fsm.state === "hide") {
+				var obstacle = new THREE.Vector3(nearObstacle().center.x,0,nearObstacle().center.z);
+				var x =35 * Math.cos((pAngle + p1Angle) / 2) +obstacle.x;
+				var z =35 * Math.sin((pAngle + p1Angle) / 2) +obstacle.z;
+				
+				if (Math.abs(this.pos.x - x) < 1 &&//x是當下要躲藏地點的x座標
+					Math.abs(this.pos.z - z) < 1//z是當下要躲藏地點的z座標
+					) 
+					{
+						var angleNow = Math.atan2(x - obstacle.x, z - obstacle.z);
+						angleNow -= Math.PI / 2;
+
+						this.mesh.rotation.y = angleNow;
+					}
+								
+				this.mesh.children[0].material.visible = false;
+				this.mesh.children[1].material.visible = false;
+				this.mesh.children[2].material.visible = true;
+				this.mesh.children[3].children[0].material.visible = false;
+				if (Math.round(time * 8) % 2 === 0) {
+					this.mesh.children[3].children[1].material.visible = true;
+					this.mesh.children[3].children[3].material.visible = false;
+				}else{
+					this.mesh.children[3].children[1].material.visible = false;
+					this.mesh.children[3].children[3].material.visible = true;
+				}
+				this.mesh.children[3].children[2].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[7].material.visible = true;
 					
-			if (this.fsm.state === 'hide')
-				super.setHideTarget (target.position.x,target.position.y,target.position.z);
-			if (this.fsm.state === 'patrol'){
+			}
+			if (this.fsm.state === "patrol") {
 				let dt = clock.getElapsedTime();
-			
-				
-				if(dt > 8){
-					let back = preditor.mesh.localToWorld(new THREE.Vector3(20,0,-20));
-					super.setPatrolTarget(back.x,0,back.z);
-					$('#Check').text ('Check Behind');
+
+				if (dt > 8) {
+					let back = preditor.mesh.localToWorld(
+						new THREE.Vector3(20, 0, -20)
+					);
+					super.setPatrolTarget(back.x, 0, back.z);
+					$("#Check").text("Check Behind");
+				} else {
+					let dis = prey.mesh.localToWorld(
+						new THREE.Vector3(-30, 0, 30)
+					);
+					super.setPatrolTarget(dis.x, 0, dis.z);
+					$("#Check").text("Follow Capturer");
 				}
-				else {
-					let dis = prey.mesh.localToWorld(new THREE.Vector3(-5,0,5));
-					super.setPatrolTarget(dis.x,0,dis.z);
-					$('#Check').text ('Follow Capturer');
-				}
-				console.log(dt);
-				
+				//console.log(dt);
+
 				this.mesh.children[0].material.visible = true;
 				this.mesh.children[1].material.visible = false;
+				this.mesh.children[2].material.visible = false;
+				this.mesh.children[3].children[0].material.visible = true;
+				this.mesh.children[3].children[1].material.visible = false;
+				this.mesh.children[3].children[2].material.visible = false;
+				this.mesh.children[3].children[3].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[6].material.visible = true;
+				this.mesh.children[7].material.visible = false;
 			}
-			if (this.fsm.state === 'attack'){
+			if (this.fsm.state === "attack") {
+				let angle = Math.atan2(soldier.pos.x,0,soldier.pos.z);
+				angle -= Math.PI / 2 + Math.PI / 5 ;
+
+				this.mesh.children[3].rotation.y = angle;
 			
-				super.setBrake(10);
-				clock.elapsedTime = 0;
 				
-				this.mesh.children[0].material.visible = false;
-				this.mesh.children[1].material.visible = true;
+				let pos = soldier.mesh.localToWorld(new THREE.Vector3(-50,0,0));
+					super.setSeekTarget(pos.x,0,pos.z);
+
+					this.mesh.children[0].material.visible = false;
+					this.mesh.children[1].material.visible = true;
+					this.mesh.children[2].material.visible = false;
+					this.mesh.children[3].children[0].material.visible = false;
+					this.mesh.children[3].children[1].material.visible = false;
+					this.mesh.children[3].children[2].material.visible = true;
+					this.mesh.children[3].children[3].material.visible = false;
+					this.mesh.children[5].material.visible = true;
+					this.mesh.children[6].material.visible = false;
+					this.mesh.children[7].material.visible = false;
 			}
-				
+		}
+	}
+}
+class CapturerAgent extends Avatar {
+	constructor(pos, mesh, name = "", fsm) {
+		super(pos, mesh);
+		this.fsm = fsm;
+		// initial state got from fsm.state;
+		this.stateSign = null;
+	}
+
+	update(dt, time) {
+		if (this.pos.z >= 200) {
+			this.pos.z = 200;
+		} else if (this.pos.z <= -200) {
+			this.pos.z = -200;
+		} else if (this.pos.x >= 200) {
+			this.pos.x = 200;
+		} else if (this.pos.x <= -200) {
+			this.pos.x = -200;
+		}
+		super.update(dt); // calling avatar update
+		if (this.fsm) {
+			$("#preyState").text(this.fsm.state);
+
+			if (this.fsm.state === "snatch") {
+				super.setSeekTarget(
+					flag.position.x,
+					0,
+					flag.position.z
+				);
+
+				if (
+					Math.abs(flag.position.x - this.pos.x) < 5 &&
+					Math.abs(flag.position.z - this.pos.z) < 5
+				) {
+					getFlag = true;
+					insert = true;
+				}
+			}
+			if (this.fsm.state === "search") {
+				var angleSearch, nextTargetX, nextTargetZ;
+				var nextTarget, allOk;
+				angleSearch = Math.random() * Math.PI * 2;
+				nextTarget = this.mesh.localToWorld(
+					new THREE.Vector3(
+						75 * Math.cos(angleSearch),
+						0,
+						75 * Math.sin(angleSearch)
+					)
+				);
+				can = false;
+
+				for (var i = 1; i < scene.obstacles.length; i++) {
+					if (
+						nextTarget.distanceTo(
+							scene.obstacles[i].center
+						) > scene.obstacles[i].size
+					) {
+						allOk = true;
+					} else {
+						allOk = false;
+					}
+				}
+				if (
+					nextTarget.x < 190 &&
+					nextTarget.x > -190 &&
+					nextTarget.z < 190 &&
+					nextTarget.z > -190 &&
+					allOk === true
+				) {
+					can = true;
+				} else {
+					can = false;
+					nextTarget = this.mesh.localToWorld(
+						new THREE.Vector3(
+							75 * Math.cos(angleSearch),
+							0,
+							75 * Math.sin(angleSearch)
+						)
+					);
+				}
+
+				if (can === true && time < 1) {
+					nextTargetCircle.position.set(
+						nextTarget.x,
+						0,
+						nextTarget.z
+					);
+
+					super.setSeekTarget(
+						nextTarget.x,
+						0,
+						nextTarget.z
+					);
+				}
+				//super.setBrake(10);
+			}
+
+			if (this.fsm.state === "hide") {
+                if(getFlag === true){
+                    flag.position.set(this.pos.x, 10, this.pos.z);
+                }
+				insert = false;
+				var obstacle = new THREE.Vector3(
+					nearObstacle().center.x,
+					0,
+					nearObstacle().center.z
+				);
+				var x =
+					35 * Math.cos((pAngle + p1Angle) / 2) +
+					obstacle.x;
+				var z =
+					35 * Math.sin((pAngle + p1Angle) / 2) +
+					obstacle.z;
+				super.setSeekTarget(x, 0, z);
+				if (
+					Math.abs(this.pos.x - x) < 1 &&
+					Math.abs(this.pos.z - z) < 1
+				) {
+					//hideTurn = true;
+
+					var angleNow = Math.atan2(
+						x - obstacle.x,
+						z - obstacle.z
+					);
+					angleNow -= Math.PI / 2;
+
+					this.mesh.rotation.y = angleNow;
+				}
+			}
+			if (this.fsm.state === "touchDown") {
+				if (getFlag === true) {
+					flag.position.set(this.pos.x, 10, this.pos.z);
+				}
+				if (insert === true) {
+					super.setSeekTarget(175, 0, 175);
+				}
+			}
+			if (this.fsm.state === "endGame") {
+				super.setSeekTarget(-150, 0, -150);
+			}
+			//hideTurn = false;
 		}
 		if (this.stateSign) {
-			this.stateSign.position.copy (this.pos);
-			this.stateSign.position.y = 10;
-			this.stateSign.lookAt (camera.position.x, 50, camera.position.z);
-			
-			if (this.fsm.state === 'patrol') {
+			this.stateSign.position.copy(this.pos);
+			this.stateSign.position.y = 30;
+			//this.stateSign.lookAt(
+				//camera.position.x,
+				//10,
+				//camera.position.z
+			//);
+
+			if (this.fsm.state === "snatch") {
 				this.stateSign.children[0].material.visible = true;
 				this.stateSign.children[1].material.visible = false;
 				this.stateSign.children[2].material.visible = false;
+				this.stateSign.children[3].material.visible = false;
+				nextTargetCircle.material.visible = false;
+				this.mesh.children[12].material.visible = false;
+				this.mesh.children[1].position.x = 3;
+				this.mesh.children[2].material.visible = true;
+				this.mesh.children[11].material.visible = true;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[3].material.visible = false;
+				this.mesh.children[4].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[7].material.visible = false;
+				this.mesh.children[8].material.visible = false;
+				this.mesh.children[9].material.visible = false;
+				this.mesh.children[10].material.visible = false;
+
+				this.mesh.children[0].children[0].material.visible = true;
+				this.mesh.children[0].children[1].material.visible = false;
+				this.mesh.children[0].children[2].material.visible = false;
+				this.mesh.children[0].children[3].material.visible = false;
+                this.mesh.children[0].children[4].material.visible = false;
 			}
-			if (this.fsm.state === 'hide') {
+			if (this.fsm.state === "search") {
 				this.stateSign.children[1].material.visible = true;
 				this.stateSign.children[0].material.visible = false;
 				this.stateSign.children[2].material.visible = false;
+				this.stateSign.children[3].material.visible = false;
+
+				if (time < 1) {
+					this.mesh.children[12].material.visible = true;
+				} else {
+					this.mesh.children[12].material.visible = false;
+				}
+
+				if (Math.floor(time) === 2) {
+					nextTargetCircle.material.visible = true;
+				} else {
+					nextTargetCircle.material.visible = false;
+				}
+				this.mesh.children[1].position.x = 3;
+				this.mesh.children[6].material.visible = true;
+				this.mesh.children[7].material.visible = true;
+				this.mesh.children[3].material.visible = false;
+				this.mesh.children[4].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[2].material.visible = false;
+				this.mesh.children[11].material.visible = false;
+				this.mesh.children[8].material.visible = false;
+				this.mesh.children[9].material.visible = false;
+				this.mesh.children[10].material.visible = false;
+
+				this.mesh.children[0].children[3].material.visible = true;
+				this.mesh.children[0].children[1].material.visible = false;
+				this.mesh.children[0].children[2].material.visible = false;
+				this.mesh.children[0].children[0].material.visible = false;
+                this.mesh.children[0].children[4].material.visible = false;
 			}
-			if(this.fsm.state === 'attack'){
+			if (this.fsm.state === "hide") {
+				this.stateSign.children[2].material.visible = true;
 				this.stateSign.children[0].material.visible = false;
 				this.stateSign.children[1].material.visible = false;
-				this.stateSign.children[2].material.visible = true;
+				this.stateSign.children[3].material.visible = false;
+				nextTargetCircle.material.visible = false;
+				this.mesh.children[12].material.visible = false;
+
+				if (Math.round(time * 16) % 2 === 0) {
+					this.mesh.children[3].material.visible = true;
+					this.mesh.children[2].material.visible = false;
+					this.mesh.children[0].children[1].material.visible = true;
+					this.mesh.children[0].children[0].material.visible = false;
+				} else {
+					this.mesh.children[2].material.visible = true;
+					this.mesh.children[3].material.visible = false;
+					this.mesh.children[0].children[1].material.visible = false;
+					this.mesh.children[0].children[0].material.visible = true;
+				}
+
+				this.mesh.children[1].position.x = 3;
+				//this.mesh.children[3].material.visible = true;
+				this.mesh.children[8].material.visible = true;
+				this.mesh.children[4].material.visible = false;
+				//this.mesh.children[2].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[11].material.visible = false;
+				this.mesh.children[7].material.visible = false;
+				this.mesh.children[9].material.visible = false;
+				this.mesh.children[10].material.visible = false;
+
+				//this.mesh.children[0].children[1].material.visible = true;
+				this.mesh.children[0].children[2].material.visible = false;
+				//this.mesh.children[0].children[0].material.visible = false;
+				this.mesh.children[0].children[3].material.visible = false;
+                this.mesh.children[0].children[4].material.visible = false;
+			}
+			if (this.fsm.state === "touchDown") {
+				this.stateSign.children[3].material.visible = true;
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+				nextTargetCircle.material.visible = false;
+				this.mesh.children[12].material.visible = false;
+				if (Math.round(time * 4) % 2 === 0) {
+					this.mesh.children[4].material.visible = true;
+					this.mesh.children[2].material.visible = false;
+					this.mesh.children[0].children[2].material.visible = true;
+					this.mesh.children[0].children[0].material.visible = false;
+				} else {
+					this.mesh.children[2].material.visible = true;
+					this.mesh.children[4].material.visible = false;
+					this.mesh.children[0].children[2].material.visible = false;
+					this.mesh.children[0].children[0].material.visible = true;
+				}
+
+				//this.mesh.children[4].material.visible = true;
+				this.mesh.children[9].material.visible = true;
+				this.mesh.children[3].material.visible = false;
+				//this.mesh.children[2].material.visible = false;
+				this.mesh.children[5].material.visible = false;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[11].material.visible = false;
+				this.mesh.children[7].material.visible = false;
+				this.mesh.children[8].material.visible = false;
+				this.mesh.children[10].material.visible = false;
+
+				//this.mesh.children[0].children[2].material.visible = true;
+				//this.mesh.children[0].children[0].material.visible = false;
+				this.mesh.children[0].children[1].material.visible = false;
+				this.mesh.children[0].children[3].material.visible = false;
+                this.mesh.children[0].children[4].material.visible = false;
+			}
+			if (this.fsm.state === "endGame") {
+				this.stateSign.children[3].material.visible = true;
+				this.stateSign.children[0].material.visible = false;
+				this.stateSign.children[1].material.visible = false;
+				this.stateSign.children[2].material.visible = false;
+				nextTargetCircle.material.visible = false;
+				this.mesh.children[12].material.visible = false;
+
+				
+				this.mesh.children[1].position.x = 3;
+				this.mesh.children[5].material.visible = true;
+				this.mesh.children[10].material.visible = true;
+				this.mesh.children[6].material.visible = false;
+				this.mesh.children[3].material.visible = false;
+				this.mesh.children[4].material.visible = false;
+				this.mesh.children[2].material.visible = false;
+				this.mesh.children[7].material.visible = false;
+				this.mesh.children[8].material.visible = false;
+				this.mesh.children[9].material.visible = false;
+				this.mesh.children[11].material.visible = false;
+
+				this.mesh.children[0].children[4].material.visible = true;
+                this.mesh.children[0].children[0].material.visible = false;
+				this.mesh.children[0].children[1].material.visible = false;
+				this.mesh.children[0].children[2].material.visible = false;
+				this.mesh.children[0].children[3].material.visible = false;
 			}
 		}
-	
-   }
+	}
+	/*straight() {
+		start = true;
+		setTimeout(this.straight(), 5000);
+	}*/
+
+	findTarget(target) {
+		var point = target.position.clone().sub(this.pos);
+		var pointWarrior = soldier.pos
+			.clone()
+			.sub(this.pos)
+			.normalize();
+
+		var preyDirect = this.mesh
+			.localToWorld(new THREE.Vector3(1, 0, 0))
+			.sub(this.mesh.localToWorld(new THREE.Vector3(0, 0, 0)))
+			.normalize();
+		var CosineValueWarrior = pointWarrior.dot(preyDirect);
+
+		ray.set(this.pos, pointWarrior);
+		//debugger;
+		var intersects = ray.intersectObjects(pickables2, true);
+		if (intersects.length > 0) {
+			if (
+				intersects[0].object.name ===
+					soldier.mesh.children[3].name &&
+				CosineValueWarrior > 0
+			) {
+				seeWarrior = true;
+			} else seeWarrior = false;
+		}
+
+		var CosineValue = point.dot(preyDirect);
+
+		if (CosineValue > 0) {
+			front = true;
+		} else {
+			front = false;
+		}
+	}
 }
 
 class Obstacle {
@@ -321,11 +703,11 @@ function init() {
 	plane.rotation.x = -Math.PI / 2;
 	pickables = [plane];
 
-	preditor = new Agent (new THREE.Vector3(), preditorMesh(), 'T-Rex', initFSM());
-	preditor.stateSign = stateSign();
-	scene.add (preditor.stateSign);
+	preditor = new PreditorAgent (new THREE.Vector3(), preditorMesh(), 'T-Rex', initFSM());
+	//preditor.stateSign = stateSign();
+	//scene.add (preditor.stateSign);
 	
-	prey = new Agent(new THREE.Vector3(),preyMesh(),"sheep");
+	prey = new CapturerAgent(new THREE.Vector3(),preyMesh(),"sheep");
 	
 	target = targetMesh();
 	target.position.set(50,0,0);
