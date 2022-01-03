@@ -365,6 +365,8 @@ var rebir,rebir2;
 var fire,fire1;
 var soldierAttack = false;
 
+var material1;
+
 
 init();
 animate();
@@ -753,10 +755,10 @@ function checkRaycaster() {
 		clock.elapsedTime = 0;
 		hide = true;
 	}
-	if(preditorToTarget.dot(preditorDir) > 0 && soldierAttack ==  false && dis < 70){
+	/*if(preditorToTarget.dot(preditorDir) > 0 && soldierAttack ==  false && dis < 70){
 		preditor.fsm.shoot();
-		LeaderShooting();
-	}
+		//LeaderShooting();
+	}*/
 	else {
 		if(hide == true && dt > 3){
 			preditor.fsm.depart();
@@ -839,11 +841,12 @@ function ShootThrough() {
 		if (dis < 8) {
 			x = i;
 			y = 0;
+			bullets[i].bullet.material.color = new THREE.Color('red');
 		}
 		
 		if(dis < 15){
 			preditor.fsm.beattacked();
-		
+			bullets[i].bullet.material.color = new THREE.Color('red');
 		}
 
 	
@@ -862,9 +865,9 @@ function ShootThrough() {
 						
 		if(Hp == 0){
 			lifeNum--;
-			scene.remove(preditor.mesh);
+			//scene.remove(preditor.mesh);
 		}
-				
+		/*		
 		if(lifeNum == 3){
 						
 			document.getElementById("heartCap").innerHTML = '<img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">  <img src="https://i.imgur.com/gPrrPdn.png" width = "40" height = "40">';
@@ -880,7 +883,7 @@ function ShootThrough() {
 		else{
 			document.getElementById("heartCap").innerHTML = 'You Die.';
 						
-		}
+		}*/
 					
 					
 		}
@@ -961,19 +964,19 @@ function animate() {
 	);
 	
 	if(Hp == 0){
-		if(lifeNum != 0){
+		//if(lifeNum != 0){
 			Hp = 100;
 			document.querySelector(".hp").style.width = `${Hp}%`;		
 			
-			scene.add(rebir);
-			rebir.position.set(-200,20,-170);
-			scene.add(preditor.mesh);
+			//scene.add(rebir);
+			//rebir.position.set(-200,20,-170);
+			//scene.add(preditor.mesh);
 						
-			preditor.pos = rebir.position.clone();
-			preditor.setSeekTarget(-180,20, -170);
-			setTimeout(preydown,500);
-			setTimeout(cancel,3000);
-		}
+			//preditor.pos = rebir.position.clone();
+			//preditor.setSeekTarget(-180,20, -170);
+			//setTimeout(preydown,500);
+			//setTimeout(cancel,3000);
+		//}
 					
 	}
 	
