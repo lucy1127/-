@@ -1397,6 +1397,7 @@ function preyFSM() {
 			{ name: "attacked", from: "search", to: "hide" },
 			{ name: "attacked", from: "touchDown", to: "hide" },
 			{ name: "attacked", from: "hide", to: "hide" },
+			{ name: "attacked", from: "endGame", to: "endGame" },
 			{ name: "takeFlag", from: "snatch", to: "touchDown" },
 			{ name: "takeFlag", from: "touchDown", to: "touchDown"},
             { name: "takeFlag", from: "hide", to: "touchDown"},
