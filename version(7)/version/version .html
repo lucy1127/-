@@ -398,7 +398,15 @@
 		<script src="https://threejs.org/build/three.min.js"></script>
 		<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 		<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
-		
+	    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+    
+<script type="importmap">
+	{
+		"imports": {
+			"three": "https://unpkg.com/three/build/three.module.js"
+		}
+	}
+</script>
 		
 		
 		<div id="start"></div>
@@ -410,8 +418,9 @@ import { MTLLoader } from "https://threejs.org/examples/jsm/loaders/MTLLoader.js
 import { OBJLoader } from "https://threejs.org/examples/jsm/loaders/OBJLoader.js";
 
 
-import * as THREE from "https://threejs.org/build/three.module.js";
-import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+import * as THREE from 'three';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/controls/OrbitControls.js';
+import { BasisTextureLoader } from "https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/BasisTextureLoader.js";
 
 (function () {
 	Math.clamp = function (val, min, max) {
@@ -1202,7 +1211,7 @@ class SoldierAgent extends Avatar {
 class Obstacle {
     constructor(center, size) {
 		this.center = center.clone();
-		let loader1 = new THREE.TextureLoader();
+		let loader1 = new BasisTextureLoader();
 		loader1.crossOrigin = "";
 		let texture1 = loader1.load(
 			"https://i.imgur.com/XlAVV7B.jpg"
@@ -1223,7 +1232,7 @@ class Obstacle {
 		this.size = size;
 		scene.add(this.mesh1);
 
-		let loader = new THREE.TextureLoader();
+		let loader = new BasisTextureLoader();
 		loader.crossOrigin = "";
 		let texture = loader.load(
 			"https://i.imgur.com/XlAVV7B.jpg"
@@ -1417,7 +1426,7 @@ function garrisonFSM() {
 
 function back(){
 
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 		loader.crossOrigin = "";
 		let tex = loader.load(
 			"https://i.imgur.com/qoaV6j8.jpg"
@@ -1433,7 +1442,7 @@ function back(){
 	
 	
 		
-	let gt_og = new THREE.TextureLoader().load( 'https://i.imgur.com/hyZYHl2.jpg' );
+	let gt_og = new BasisTextureLoader().load( 'https://i.imgur.com/hyZYHl2.jpg' );
 	let gg_og = new THREE.PlaneBufferGeometry( 600, 100 );
 	let gm_og = new THREE.MeshBasicMaterial( { color: 0xffffff, map: gt_og ,side: THREE.DoubleSide} );
 
@@ -1456,7 +1465,7 @@ function back(){
 	
 }
 function tree(){
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	loader.crossOrigin = '';
 	var texture = loader.load('https://i.imgur.com/omX5Drl.png');
 	
@@ -1498,7 +1507,7 @@ function tree(){
 }
 
 function gasBox(){
-	let loader1 = new THREE.TextureLoader();
+	let loader1 = new BasisTextureLoader();
 	loader1.crossOrigin = "";
 	let texture1 = loader1.load("https://i.imgur.com/XlAVV7B.jpg");
 	texture1.wrapS = THREE.RepeatWrapping;
@@ -1514,7 +1523,7 @@ function gasBox(){
 	
 	
 	
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 		loader.crossOrigin = "";
 		let texture = loader.load(
 			"https://i.imgur.com/ILj85DO.png?1"
@@ -1578,7 +1587,7 @@ function rebirth(){
 	bevelEnabled: false,
   };
 	
-	let loader = new THREE.TextureLoader()
+	let loader = new BasisTextureLoader()
 	loader.setCrossOrigin ("")
 	let map = loader.load ("https://i.imgur.com/MXNuCwW.png")
 	map.wrapS = map.wrapT = THREE.WrapRepeating
@@ -1693,7 +1702,7 @@ function castle(){
 		bevelEnabled: false,
 	};
 	
-	let loader = new THREE.TextureLoader()
+	let loader = new BasisTextureLoader()
 	loader.setCrossOrigin ("")
 	let map = loader.load ("https://i.imgur.com/QVhD9It.png")
 	map.wrapS = map.wrapT = THREE.WrapRepeating
@@ -1733,7 +1742,7 @@ function castle(){
 	return castle;
 }
 function leaderSignMesh(){
-	let loader = new THREE.TextureLoader()
+	let loader = new BasisTextureLoader()
 	loader.setCrossOrigin ("")
 	let map = loader.load ("https://i.imgur.com/PpRsPnV.png")
 	
@@ -1749,7 +1758,7 @@ function leaderSignMesh(){
 	return mesh;
 }
 function enemySignMesh(){
-	let loader = new THREE.TextureLoader()
+	let loader = new BasisTextureLoader()
 	loader.setCrossOrigin ("")
 	let map = loader.load ("https://i.imgur.com/0zvc7zF.png")
 	
@@ -1841,9 +1850,11 @@ function init() {
 	
 	//  GROUND
 
-	var gt = new THREE.TextureLoader().load( 'https://i.imgur.com/hyZYHl2.jpg' );
+	var loader = new BasisTextureLoader();
+	loader.crossOrigin = "";
+	var gt2 = loader.load( 'https://i.imgur.com/hyZYHl2.jpg' );
 	var gg = new THREE.PlaneBufferGeometry( 400, 400 );
-	var gm = new THREE.MeshBasicMaterial( { color: 0xffffff, map: gt ,side: THREE.DoubleSide} );
+	var gm = new THREE.MeshBasicMaterial( { color: 0xffffff, map: gt2 ,side: THREE.DoubleSide} );
 
 	var ground = new THREE.Mesh( gg, gm );
 	ground.rotation.x = - Math.PI / 2;
@@ -2008,9 +2019,9 @@ function init() {
 	soldierRaycaster = new THREE.Raycaster();
 
 	//flag
-	let loader = new THREE.TextureLoader();
-	loader.crossOrigin = "";
-	let tex = loader.load("https://i.imgur.com/3YSMhL0.png");
+	let loader2 = new BasisTextureLoader();
+	loader2.crossOrigin = "";
+	let tex = loader2.load("https://i.imgur.com/3YSMhL0.png");
 	flag = new THREE.Mesh(
 		new THREE.CircleGeometry(15, 20),
 		new THREE.MeshBasicMaterial({
@@ -2079,10 +2090,10 @@ function init() {
 	
 }
 function DefMesh() {
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	let icon = loader.load("https://i.imgur.com/iiq8Wk5.png");
 
-	let loaderBody = new THREE.TextureLoader();
+	let loaderBody = new BasisTextureLoader();
 	let iconBody = loader.load("https://i.imgur.com/iiq8Wk5.png");
 	iconBody.wrapS = THREE.RepeatWrapping;
 	iconBody.wrapT = THREE.RepeatWrapping;
@@ -2132,9 +2143,9 @@ function DefMesh() {
 }
 
 function soldierMesh() {
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	let icon = loader.load("https://i.imgur.com/C8sduKF.png");
-	let loaderBody = new THREE.TextureLoader();
+	let loaderBody = new BasisTextureLoader();
 	let iconBody = loader.load("https://i.imgur.com/7yl0PLz.png");
 	iconBody.wrapS = THREE.RepeatWrapping;
 	iconBody.wrapT = THREE.RepeatWrapping;
@@ -2192,9 +2203,9 @@ function soldierMesh() {
 	return soldier;
 }
 function preditorMesh() {
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	let icon = loader.load("https://i.imgur.com/9N9ohZ9.jpeg");
-	let loaderBody = new THREE.TextureLoader();
+	let loaderBody = new BasisTextureLoader();
 	let iconBody = loader.load("https://i.imgur.com/9N9ohZ9.jpeg");
 	iconBody.wrapS = THREE.RepeatWrapping;
 	iconBody.wrapT = THREE.RepeatWrapping;
@@ -2315,10 +2326,10 @@ function preditorMesh() {
 	return captain;
 }
 function capturerMesh() {
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	let icon = loader.load("https://i.imgur.com/MIvqfLQ.png");
 
-	let loaderBody = new THREE.TextureLoader();
+	let loaderBody = new BasisTextureLoader();
 	let iconBody = loader.load("https://i.imgur.com/MIvqfLQ.png");
 	iconBody.wrapS = THREE.RepeatWrapping;
 	iconBody.wrapT = THREE.RepeatWrapping;
@@ -2509,7 +2520,7 @@ function capturerMesh() {
 	return capturer;
 }
 function stateSign() {
-	let loader = new THREE.TextureLoader();
+	let loader = new BasisTextureLoader();
 	let snatchMap = loader.load("https://i.imgur.com/L67LiqY.png");
 	let searchMap = loader.load("https://i.imgur.com/ui0cEeC.png");
 	let hideMap = loader.load("https://i.imgur.com/BRChBw1.png");
