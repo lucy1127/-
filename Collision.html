@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+</style>
+</head>
+<body style='overflow:hidden'> 
+
+<div id='info'>
+	<h3 style="color: red"> CONTINUOUS collision<br /></h3>
+</div>
+
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+</script>
+<script >
+javascript: (function () {
+	var script = document.createElement("script");
+	script.onload = function () {
+		var stats = new Stats();
+		document.body.appendChild(stats.dom);
+		requestAnimationFrame(function loop() {
+			stats.update();
+			requestAnimationFrame(loop);
+		});
+	};
+	script.src =
+		"https://mrdoob.github.io/stats.js/build/stats.min.js";
+	document.head.appendChild(script);
+})();
+
+//import * as THREE from "https://threejs.org/build/three.module.js";
+//import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+
+var camera, scene, renderer, light, controls;
+var ball, ball1, ball2, cylinder, test, pt1, pt2, line;
+var R = 3; // ball radius
+var r = 10; // cylinder radius
+var h = 20; // cylinder height
+var keyboard = new KeyboardState();
+
+$('#move').change (function() {
+	ball.position.lerpVectors (ball1.position, ball2.position, $(this).val()/50)
+});
+
+init();
+animate();
+
+function hit_continuous(b1, b2, rr, hh){
+  let b1x_2 = b1.x * b1.x, b1y_2 = b1.y * b1.y, b1z_2 = b1.z * b1.z;
+  let b2x_2 = b2.x * b2.x, b2y_2 = b2.y * b2.y, b2z_2 = b2.z * b2.z;
+  //(b2z^2-2*b1z*b2z+b92x^2-2*b1x*b2x+b1z^2+b1x^2)
+  let a = b2z_2 - 2*b1.z*b2.z + b2x_2 - 2*b1.x*b2.x + b1z_2 + b1x_2;
+  //(2*b1z*b2z+2*b1x*b2x-2*b1z^2-2*b1x^2)
+  let b = 2*b1.z*b2.z + 2*b1.x*b2.x - 2*b1z_2 - 2*b1x_2;
+  //-r^2+b1z^2+b1x^2
+  let c = -1*rr*rr + b1z_2 + b1x_2;
+  let discriminant = b*b - 4*a*c;
+  console.log('Discriminant: ' + discriminant);  
+  if(discriminant<0) return false;
+  let qrt = Math.sqrt(discriminant);
+  
+  let t = (-b - qrt)/(2*a);
+  console.log('t1: ' + t);
+  
+  let test = b1.clone().multiplyScalar(1-t).add(b2.clone().multiplyScalar(t));
+  let az = new THREE.Mesh(new THREE.SphereGeometry( 1, 20, 20), new THREE.MeshBasicMaterial({color:0x000000}));
+  pt1 = az;
+  scene.add(az);
+  az.position.copy(test.clone().add(cylinder.position));
+  if( test.y <= hh && test.y >= 0 && t <= 1 && t >= 0){
+    az.material.color.setRGB(0xff, 0x00, 0x00);
+    return true;
+  }
+  t = (-b + qrt)/(2*a);
+  console.log('t2: ' + t);
+  test = b1.clone().multiplyScalar(1-t).add(b2.clone().multiplyScalar(t));
+  az = new THREE.Mesh(new THREE.SphereGeometry( 1, 20, 20), new THREE.MeshBasicMaterial({color:0x000000}));
+  pt2 = az;
+  scene.add(az);
+  az.position.copy(test.clone().add(cylinder.position));
+  if( test.y <= hh && test.y >= 0 && t <= 1 &&t >= 0){
+    az.material.color.setRGB(0xff, 0x00, 0x00);
+    return true;
+  }
+  else return false;
+}
+function ballsCylinderInter () {
+	let u = new THREE.Vector3();
+  let v = new THREE.Vector3();
+  u.set (ball2.position.x - ball1.position.x, 0, ball2.position.z - ball1.position.z)
+  v.set (cylinder.position.x - ball1.position.x, 0,
+  				cylinder.position.z - ball1.position.z)
+ 	let dd = u.sub(u.clone().projectOnVector(v)).length();
+  console.log ('dd: ' + dd)
+  if ( u.sub(u.clone().projectOnVector(v)).length() > r+R ) return
+
+	if (ball1.position.y > h+R && ball2.position.y > h+R) return
+	if (ball1.position.y < h+R && ball2.position.y < h+R) alert ('hit')
+  
+	// (1-t)*b1y + t*b2y = h+R
+  // [consider divide-by-zero]
+  
+  let t = (h+R - ball1.position.y)/(ball2.position.y - ball1.position.y);
+  let inter = ball1.position.clone().multiplyScalar (1-t).add ( ball2.position.clone().multiplyScalar(t) );
+  console.log (inter)
+  let cc = cylinder.position.clone();
+  cc.y = h+R;
+  let ddd = cc.distanceTo (inter) 
+  console.log (cc)
+  console.log (ddd)
+  if (cc.distanceTo (inter) < r+R) {
+  	alert ('intersect!')
+  } 
+          
+}
+
+function ballCylinderInter() {
+  let point = ball.position.clone().sub(cylinder.position);
+  let yp = new THREE.Vector3(0, 1, 0)
+  let hh = point.dot(yp);
+  if (hh < h + R && (point.lengthSq() - hh * hh) < (r + R) * (r + R)) {
+    ball.material.color = new THREE.Color('red')
+  //  console.log ('hh:' + hh)
+  } else 
+    ball.material.color = new THREE.Color('white')
+  
+}
+
+function init() {
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.set(0,200,0);
+  scene.add(camera);
+
+  light = new THREE.PointLight(0xffffff);
+  light.position.set(100, 300, 200);
+  scene.add(light);
+
+  var gridXZ = new THREE.GridHelper(100, 10, 'red', 'white');
+  scene.add(gridXZ);
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+  ////////////////////////////////////////////////////////////////////////
+
+  cylinder = new THREE.Object3D();
+  let cylinderMesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 50), new THREE.MeshNormalMaterial({
+    transparent: true,
+    opacity: 0.53
+  }))
+  cylinder.add (cylinderMesh)
+  cylinderMesh.position.y = h/2
+  cylinder.position.set(5, 0, 8)
+  scene.add(cylinder)
+
+  ball1 = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 20), new THREE.MeshBasicMaterial({color:0x0000ff}))
+  scene.add(ball1)
+  ball1.position.set(10, 25, 10)
+
+	ball2 = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 20), new THREE.MeshBasicMaterial({color:0x4286f4}))
+  scene.add(ball2)
+  ball2.position.set(-20, 10, 13)
+  
+  ball = new THREE.Mesh(new THREE.SphereGeometry(R, 20, 20), new THREE.MeshBasicMaterial())
+  //scene.add(ball)
+	//ball.position.lerpVectors (ball1.position, ball2.position, $('#move').val()/50)
+  let geometry = new THREE.BufferGeometry();
+  geometry.setFromPoints(ball1.position.clone());
+  geometry.setFromPoints(ball2.position.clone());
+  let material = new THREE.LineBasicMaterial( { color: 0x314159 } );
+  line = new THREE.Line(geometry, material);
+  scene.add(line);
+  //////////////////////////////
+  let b1 = ball1.position.clone().sub(cylinder.position);
+  let b2 = ball2.position.clone().sub(cylinder.position);
+  if(hit_continuous(b1, b2, r, h)){
+    console.log('!----HIT----!');
+  }
+  
+  
+  //////////////////////////////
+    //ballsCylinderInter()
+
+}
+
+function animate() {
+  keyboard.update();
+  if(keyboard.up('Z')||keyboard.up('X')||keyboard.up('A')||keyboard.up('D')||keyboard.up('S')||keyboard.up('C')){
+    if(pt1){
+      scene.remove(pt1);
+    }
+    if(pt2){
+      scene.remove(pt2);
+    }
+    if(line){
+      scene.remove(line);
+      
+      let geometry = new THREE.BufferGeometry();
+      geometry.setFromPoints(ball1.position.clone());
+      geometry.setFromPoints(ball2.position.clone());
+     
+      console.log(line.geometry.vertices)
+      line.geometry = geometry;
+      console.log(line.geometry.vertices)
+      scene.add(line);
+    }
+    let b1 = ball1.position.clone().sub(cylinder.position);
+    let b2 = ball2.position.clone().sub(cylinder.position);
+    if(hit_continuous(b1, b2, r, h)){
+      console.log('!----HIT----!');
+    }
+  }
+  if (keyboard.pressed ('Z')) {
+      if(keyboard.pressed ('shift')){
+        ball1.position.x += 1; 
+      }
+      else{
+        ball1.position.x -= 1;
+      }
+  }
+  if (keyboard.pressed ('X')) {
+    if(keyboard.pressed ('shift')){
+      ball1.position.y += 1; 
+    }
+    else{
+      ball1.position.y -= 1;
+    }
+  }
+  if (keyboard.pressed ('C')) {
+    if(keyboard.pressed ('shift')){
+      ball1.position.z += 1; 
+    }
+    else{
+      ball1.position.z -= 1;
+    }
+  }
+  if (keyboard.pressed ('A')) {
+    if(keyboard.pressed ('shift')){
+      ball2.position.x += 1; 
+    }
+    else{
+      ball2.position.x -= 1;
+    }
+  }
+  if (keyboard.pressed ('S')) {
+    if(keyboard.pressed ('shift')){
+      ball2.position.y += 1; 
+    }
+    else{
+      ball2.position.y -= 1;
+    }
+  }
+  if (keyboard.pressed ('D')) {
+    if(keyboard.pressed ('shift')){
+      ball2.position.z += 1; 
+    }
+    else{
+      ball2.position.z -= 1;
+    }
+  }
+  //ball.position.lerpVectors (ball1.position, ball2.position, $('#move').val()/50)
+  requestAnimationFrame(animate);
+  render();
+  
+  // discrete test 
+  //ballCylinderInter()
+
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+// important to add this 
+// in jsfiddle!
+//window.focus();
+
+
+</script>
+</body>
+</html>
