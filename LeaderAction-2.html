@@ -86,6 +86,13 @@
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script type="importmap">
+		{
+			"imports": {
+				"three": "https://unpkg.com/three/build/three.module.js"
+			}
+		}
+	</script>
 
 <script type="module">
 	javascript: (function () {
@@ -103,7 +110,7 @@
 		document.head.appendChild(script);
 	})();
 
-	import * as THREE from "https://threejs.org/build/three.module.js";
+	import * as THREE from 'three';
 	import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
 
 	(function () {
